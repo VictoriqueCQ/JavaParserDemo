@@ -148,53 +148,53 @@ public class TestFileAnalysis {
 //        System.out.println(myMethod.toString());
 
 
-//        List<MethodCallExpr> methodCallExprList = cu.findAll(MethodCallExpr.class);
-//        List<VariableDeclarator> variableDeclarators = cu.findAll(VariableDeclarator.class);
-//        List<Expression> expressions = new ArrayList<>();
-//
-//        for (MethodCallExpr methodCallExpr : methodCallExprList) {
-//            String methodCallName = methodCallExpr.getNameAsString();
-////            System.err.println(methodCallExpr.toString());
-////            System.err.println(methodCallName);
-//            if (methodCallName.contains("assert")) {
-//                //拆出可能是测试目标的参数变量
-//                Expression expression = methodCallExpr.getArgument(0);
-//                expressions.add(expression);
-//                //寻找测试目标参数变量初始化的地方
-//                for (VariableDeclarator vd : variableDeclarators) {
-//                    if (vd.getNameAsExpression().equals(expression)) {
-//                        String targetMethodName = vd.getInitializer().get().asMethodCallExpr().getNameAsString();
-////                        System.out.println(targetMethodName);
-//                        String targetMethodCall = vd.getInitializer().get().toString().split("\\.")[0];
-////                        System.out.println(targetMethodCall);
-//
-//
-//                        String packageName = packageList.get(0).getNameAsString().replaceAll("\\.", "_");
-//                        List<String> typeList = new ArrayList<>();
-//                        NodeList<Expression> arguments = vd.getInitializer().get().asMethodCallExpr().getArguments();
-//                        for(Expression e1:arguments){
-//                            for(VariableDeclarator vd2:variableDeclarators){
-//                                if(vd2.getNameAsExpression().equals(e1)){
-//                                    typeList.add(vd2.getType().toString());
-//                                }
-//                            }
-//                        }
-//                        List<String> MUTList = new ArrayList<>();
-//                        MUTList = findFileList(new File("MUT/"),MUTList);
-////                        MUTList.forEach(System.err::println);
-////                        System.err.println(packageName);
-//                        for(String s:MUTList){
-//                            if(s.contains(targetMethodName)&&s.contains(packageName)&&judgeArguments(s,typeList)){
-//                                CompilationUnit cu2 = constructCompilationUnit(null,s);
-////                                System.out.println(cu2.findAll(MethodDeclaration.class).get(0).toString());
-//                                targetMethodDeclaration = cu2.findAll(MethodDeclaration.class).get(0);
-//                            }
-//                        }
-//                    }
-//                }
-//            }
-////            System.out.println(methodCallExpr.getNameAsString());
-//        }
+        List<MethodCallExpr> methodCallExprList = cu.findAll(MethodCallExpr.class);
+        List<VariableDeclarator> variableDeclarators = cu.findAll(VariableDeclarator.class);
+        List<Expression> expressions = new ArrayList<>();
+
+        for (MethodCallExpr methodCallExpr : methodCallExprList) {
+            String methodCallName = methodCallExpr.getNameAsString();
+//            System.err.println(methodCallExpr.toString());
+//            System.err.println(methodCallName);
+            if (methodCallName.contains("assert")) {
+                //拆出可能是测试目标的参数变量
+                Expression expression = methodCallExpr.getArgument(0);
+                expressions.add(expression);
+                //寻找测试目标参数变量初始化的地方
+                for (VariableDeclarator vd : variableDeclarators) {
+                    if (vd.getNameAsExpression().equals(expression)) {
+                        String targetMethodName = vd.getInitializer().get().asMethodCallExpr().getNameAsString();
+//                        System.out.println(targetMethodName);
+                        String targetMethodCall = vd.getInitializer().get().toString().split("\\.")[0];
+//                        System.out.println(targetMethodCall);
+
+
+                        String packageName = packageList.get(0).getNameAsString().replaceAll("\\.", "_");
+                        List<String> typeList = new ArrayList<>();
+                        NodeList<Expression> arguments = vd.getInitializer().get().asMethodCallExpr().getArguments();
+                        for(Expression e1:arguments){
+                            for(VariableDeclarator vd2:variableDeclarators){
+                                if(vd2.getNameAsExpression().equals(e1)){
+                                    typeList.add(vd2.getType().toString());
+                                }
+                            }
+                        }
+                        List<String> MUTList = new ArrayList<>();
+                        MUTList = findFileList(new File("MUT/"),MUTList);
+//                        MUTList.forEach(System.err::println);
+//                        System.err.println(packageName);
+                        for(String s:MUTList){
+                            if(s.contains(targetMethodName)&&s.contains(packageName)&&judgeArguments(s,typeList)){
+                                CompilationUnit cu2 = constructCompilationUnit(null,s);
+//                                System.out.println(cu2.findAll(MethodDeclaration.class).get(0).toString());
+                                targetMethodDeclaration = cu2.findAll(MethodDeclaration.class).get(0);
+                            }
+                        }
+                    }
+                }
+            }
+//            System.out.println(methodCallExpr.getNameAsString());
+        }
 
 
         /**

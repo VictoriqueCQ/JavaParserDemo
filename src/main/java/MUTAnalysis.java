@@ -14,8 +14,10 @@ import com.github.javaparser.symbolsolver.resolution.typesolvers.CombinedTypeSol
 import com.github.javaparser.symbolsolver.resolution.typesolvers.JavaParserTypeSolver;
 import com.github.javaparser.symbolsolver.resolution.typesolvers.ReflectionTypeSolver;
 
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileWriter;
 import java.util.*;
 
 public class MUTAnalysis {
@@ -247,26 +249,28 @@ public class MUTAnalysis {
 
 //        System.out.println(methodName);
 //        System.out.println(myClass);
-//        try {
-//            String[] filenameArray = FILE_PATH.split("/");
-//            String filename = filenameArray[filenameArray.length - 1].split("\\.")[0];
-////            String outputFileName = "MUT/" + MD5Util.getMD5(packageName + filename + methodName + typeString) + ".txt";
-//            String outputFileName = "MUT/" + packageName + "+" + filename + "+" + methodName + "+" + typeString;
-////            System.out.println(parameters);
-//
-//            BufferedWriter bw = new BufferedWriter(new FileWriter(outputFileName));
-////            System.err.println(writeFileImportList.size());
-//            for (String s : writeFileImportList) {
-////                System.out.println(s);
+        try {
+            String[] filenameArray = FILE_PATH.split("/");
+            String filename = filenameArray[filenameArray.length - 1].split("\\.")[0];
+//            String outputFileName = "MUT/" + MD5Util.getMD5(packageName + filename + methodName + typeString) + ".txt";
+            String outputFileName =  packageName + "+" + filename + "+" + methodName + "+" + typeString;
+            String output = "MUT/" +MD5Util.getMD5(outputFileName)+".txt";
+//            System.out.println(outputFileName+": "+output);
+//            System.out.println(parameters);
+
+            BufferedWriter bw = new BufferedWriter(new FileWriter(output));
+//            System.err.println(writeFileImportList.size());
+            for (String s : writeFileImportList) {
+//                System.out.println(s);
 //                System.out.println(outputFileName);
-//                bw.write(s);
-//            }
-//            bw.write(myClass.toString());
-//            bw.close();
-//            System.err.println("文件写入成功");
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//        }
+                bw.write(s);
+            }
+            bw.write(myClass.toString());
+            bw.close();
+            System.err.println("文件写入成功");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     public EnumDeclaration findEnum(String variable, String filePath) throws FileNotFoundException {
