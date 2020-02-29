@@ -24,25 +24,31 @@ public class MainAnalysis {
 //                System.err.println(value);
             }
         }
-        for (int j = 0; j < testFilePathList.size(); j++) {
-            if(j==0){
-//                System.err.println(testFilePathList.get(j));
-            TestFileAnalysis testFileAnalysis = new TestFileAnalysis(testFilePathList.get(j));
-            List<String> originalTestFragmentClassList = testFileAnalysis.getOriginalTestFragment();
-            for (int i = 0; i < originalTestFragmentClassList.size(); i++) {
-                    if(i==0){
-                testFileAnalysis.dependencyAnalysis(i, originalTestFragmentClassList.get(i));
-                    }
-            }
-            }
-        }
-//        for(String s: filePathList){
-//            MUTAnalysis mutAnalysis = new MUTAnalysis(s);
-//            List<String> originalMethodClassList = mutAnalysis.getOriginalMethod();
-//            for(int i = 0 ;i<originalMethodClassList.size();i++){
-//                mutAnalysis.methodExtraction(i,originalMethodClassList.get(i));
+//        for (int j = 0; j < testFilePathList.size(); j++) {
+//            if(j==0){
+////                System.err.println(testFilePathList.get(j));
+//            TestFileAnalysis testFileAnalysis = new TestFileAnalysis(testFilePathList.get(j));
+//            List<String> originalTestFragmentClassList = testFileAnalysis.getOriginalTestFragment();
+//            for (int i = 0; i < originalTestFragmentClassList.size(); i++) {
+//                    if(i==0){
+//                testFileAnalysis.dependencyAnalysis(i, originalTestFragmentClassList.get(i));
+//                    }
+//            }
 //            }
 //        }
+        for(int j = 0;j<filePathList.size();j++){
+//            if(j == 0){
+                MUTAnalysis mutAnalysis = new MUTAnalysis(filePathList.get(j));
+                List<String> originalMethodClassList = mutAnalysis.getOriginalMethod();
+                for(int i = 0 ;i<originalMethodClassList.size();i++){
+//                    if(i==0){
+                        mutAnalysis.methodExtraction(i,originalMethodClassList.get(i));
+
+//                    }
+                }
+//            }
+        }
+
 //        File file = new File("Test Fragment/");
 //        if(!file.exists()){
 //            file.mkdir();

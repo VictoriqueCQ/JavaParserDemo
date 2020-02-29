@@ -220,15 +220,42 @@ public class MUTAnalysis {
                 }
             }
         }
-        String packageName = packageList.get(0).getNameAsString().replaceAll("\\.", "_");
+        String packageName = packageList.get(0).getNameAsString();
+        NodeList<Parameter> parameters = myMethod.getParameters();
+        List<String> typeList = new ArrayList<>();
+        for (Parameter p : parameters) {
+            typeList.add(p.getTypeAsString());
+        }
+        String typeString = "(";
+        if (typeList.size() > 0) {
+            String s1 = typeList.get(0).replaceAll("\\?","");
+            s1 = s1.replaceAll("<","");
+            s1 = s1.replaceAll(">","");
+            typeString += s1;
+            for (int i = 1; i < typeList.size(); i++) {
+                String s2 = typeList.get(i).replaceAll("\\?","");
+                s2 = s2.replaceAll("<","");
+                s2 = s2.replaceAll(">","");
+                typeString = typeString + "," + s2;
+            }
+
+        }
+        typeString += ")";
+
+//        parameters = "("+parameters.substring(1,parameters.length()-1)+")";
+
         myClass.addMember(myMethod);
         String methodName = myMethod.getNameAsString();
+
 //        System.out.println(methodName);
 //        System.out.println(myClass);
         try {
             String[] filenameArray = FILE_PATH.split("/");
             String filename = filenameArray[filenameArray.length - 1].split("\\.")[0];
-            String outputFileName = "MUT/" + packageName + "_" + filename + "_" + methodName + myMethod.getParameters().toString() + ".txt";
+//            String outputFileName = "MUT/" + MD5Util.getMD5(packageName + filename + methodName + typeString) + ".txt";
+            String outputFileName = "MUT/" + packageName + "+" + filename + "+" + methodName + "+" + typeString;
+//            System.out.println(parameters);
+
             BufferedWriter bw = new BufferedWriter(new FileWriter(outputFileName));
 //            System.err.println(writeFileImportList.size());
             for (String s : writeFileImportList) {
