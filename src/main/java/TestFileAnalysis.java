@@ -17,19 +17,15 @@ import java.io.*;
 import java.util.*;
 
 public class TestFileAnalysis {
-    //    String FILE_NAME = "BitmapHunterTest";
-//    String FILE_PATH = "D:/picasso/src/test/java/com/squareup/picasso3/BitmapHunterTest.java";
     String FILE_PATH = "";
     String ROOT_PATH = "D:/picasso/src/main/java/";//"src\\main\\java"
     static List<PackageDeclaration> packageList;
     static List<ImportDeclaration> importPackageList;
     static List<ClassOrInterfaceDeclaration> innerClassList = new ArrayList<>();
     static List<FieldDeclaration> globelVariableList = new ArrayList<>();
-    //    static List<VariableDeclarator> globel_Variable_List;
     MethodDeclaration beforeMethod = new MethodDeclaration();
     static List<MethodDeclaration> normalMethodList = new ArrayList<>();
 
-    //    static List<MethodDeclaration> testMethodList = new ArrayList<>();
     public TestFileAnalysis(String filePath) {
         this.FILE_PATH = filePath;
     }
@@ -73,17 +69,18 @@ public class TestFileAnalysis {
                 beforeMethod = md;
             }
         }
-//        normalMethodList.forEach(nm -> System.out.println(nm.toString()));
         //获取测试方法。先获取所有测试方法，然后转成类
         cu.findAll(MethodDeclaration.class).stream().filter(md -> md.getAnnotationByName("Test").isPresent()).forEach(md -> originalTestFragmentClassList.add("class TestFragment{\n" + md.toString() + "}"));
         return originalTestFragmentClassList;
     }
 
-    public void dependencyAnalysis(int index, String testFragmentString) throws IOException {
-        List<String> importDependency = new ArrayList<>();
+    public void dependencyAnalysis(String testFragmentString) throws IOException {
         List<String> externalVariableDependency = new ArrayList<>();
+        List<FieldDeclaration> externalFieldDeclarationList = new ArrayList<>();
         List<String> fragmentContent = new ArrayList<>();
         List<String> methodDependency = new ArrayList<>();
+        List<MethodDeclaration> methodDeclarationList = new ArrayList<>();
+        Set<MethodDeclaration> methodDeclarationSet = new HashSet<>();
         MethodDeclaration targetMethodDeclaration = null;
 
         //获得compilationUnit，用于后续分析
@@ -127,83 +124,14 @@ public class TestFileAnalysis {
                 }
             }
         });
-
-//        System.out.println("=============================");
-//        List<MethodCallExpr> methodCallList = cu.findAll(MethodCallExpr.class);
-//        for (MethodCallExpr mce : methodCallList) {
-//                try {
-//                    System.err.println("======" + mce.resolve().getReturnType().describe());
-//                    System.err.println("===="+mce.toString());
-//                } catch (Exception e) {
-//                    System.out.println(e.getMessage());
-//                }
-//        }
-//        cu.findAll(MethodCallExpr.class).forEach(mc -> System.out.println(mc.toString()));
-//        cu.findAll(MethodReferenceExpr.class).forEach(mr-> System.out.println(mr.toString()));
-
         //初始化ClassOrInterfaceDeclaration,用于构造新的测试片段类
         ClassOrInterfaceDeclaration myClass = new ClassOrInterfaceDeclaration();
         //获取MethodDeclanation，用于后续添加语句
         MethodDeclaration myMethod = cu.findAll(MethodDeclaration.class).get(0);
-//        System.out.println(myMethod.toString());
-
-
-        List<MethodCallExpr> methodCallExprList = cu.findAll(MethodCallExpr.class);
-        List<VariableDeclarator> variableDeclarators = cu.findAll(VariableDeclarator.class);
-        List<Expression> expressions = new ArrayList<>();
-
-        for (MethodCallExpr methodCallExpr : methodCallExprList) {
-            String methodCallName = methodCallExpr.getNameAsString();
-//            System.err.println(methodCallExpr.toString());
-//            System.err.println(methodCallName);
-            if (methodCallName.contains("assert")) {
-                //拆出可能是测试目标的参数变量
-                Expression expression = methodCallExpr.getArgument(0);
-                expressions.add(expression);
-                //寻找测试目标参数变量初始化的地方
-                for (VariableDeclarator vd : variableDeclarators) {
-                    if (vd.getNameAsExpression().equals(expression)) {
-                        String targetMethodName = vd.getInitializer().get().asMethodCallExpr().getNameAsString();
-//                        System.out.println(targetMethodName);
-                        String targetMethodCall = vd.getInitializer().get().toString().split("\\.")[0];
-//                        System.out.println(targetMethodCall);
-
-
-                        String packageName = packageList.get(0).getNameAsString().replaceAll("\\.", "_");
-                        List<String> typeList = new ArrayList<>();
-                        NodeList<Expression> arguments = vd.getInitializer().get().asMethodCallExpr().getArguments();
-                        for(Expression e1:arguments){
-                            for(VariableDeclarator vd2:variableDeclarators){
-                                if(vd2.getNameAsExpression().equals(e1)){
-                                    typeList.add(vd2.getType().toString());
-                                }
-                            }
-                        }
-                        List<String> MUTList = new ArrayList<>();
-                        MUTList = findFileList(new File("MUT/"),MUTList);
-//                        MUTList.forEach(System.err::println);
-//                        System.err.println(packageName);
-                        for(String s:MUTList){
-                            if(s.contains(targetMethodName)&&s.contains(packageName)&&judgeArguments(s,typeList)){
-                                CompilationUnit cu2 = constructCompilationUnit(null,s);
-//                                System.out.println(cu2.findAll(MethodDeclaration.class).get(0).toString());
-                                targetMethodDeclaration = cu2.findAll(MethodDeclaration.class).get(0);
-                            }
-                        }
-                    }
-                }
-            }
-//            System.out.println(methodCallExpr.getNameAsString());
-        }
-
-
-        /**
-         * 获取第三方变量，处理import
-         */
+        //获取第三方变量，处理import
         myClass.setName("TestFragment");
         Set<String> importTypeSet = new HashSet<>();
         cu.findAll(VariableDeclarator.class).forEach(v -> importTypeSet.add(v.getTypeAsString()));
-
 
         Map<Expression, Boolean> tempAbnormalArgumentMap = new HashMap<>(abnormalArgumentMap);
         for (Map.Entry<Expression, Boolean> entry : abnormalArgumentMap.entrySet()) {
@@ -221,24 +149,21 @@ public class TestFileAnalysis {
                 }
             }
         }
+        //获取所有函数
+        List<MethodCallExpr> methodCallList = cu.findAll(MethodCallExpr.class);
+        List<VariableDeclarator> variableDeclarators = cu.findAll(VariableDeclarator.class);
+
 
         for (Map.Entry<Expression, Boolean> entry : tempAbnormalArgumentMap.entrySet()) {
             if (entry.getValue() == true) {
                 importTypeSet.add(entry.getKey().toString());
             }
         }
-
         //处理import
-        List<ImportDeclaration> importDeclarationList = new ArrayList<>();
         List<ImportDeclaration> importList = new ArrayList<>();
         for (String s : importTypeSet) {
-            for (ImportDeclaration id : importPackageList) {
-                String[] importNameArray = id.getNameAsString().split("\\.");
-                String importName = importNameArray[importNameArray.length - 1];
-                if (importName.equals(s)) {
-                    importDeclarationList.add(id);
-                    importList.add(id);
-                }
+            if (getImportDeclartion(importPackageList, s) != null) {
+                importList.add(getImportDeclartion(importPackageList, s));
             }
         }
 
@@ -270,33 +195,218 @@ public class TestFileAnalysis {
                 writeFileImportList.add(i.toString());
             }
             myClass.addMember(f);
+            externalFieldDeclarationList.add(f);
             externalVariableDependency.add(f.toString());
         }
-        //添加@Before
+
+        for (MethodCallExpr mce : methodCallList) {
+            if (!mce.toString().contains("assert")) {
+                MethodDeclaration method = getTargetMethod(importList, mce, variableDeclarators, externalFieldDeclarationList);
+                if (method != null) {
+                    methodDependency.add(method.toString());
+                    methodDeclarationList.add(method);
+                    methodDeclarationSet.add(method);
+                }
+            }
+        }
+
+        //构造类型
+        NodeList<Parameter> parameters = myMethod.getParameters();
+        List<String> typeList = new ArrayList<>();
+        for (Parameter p : parameters) {
+            typeList.add(p.getTypeAsString());
+        }
+        String typeString = "(";
+        if (typeList.size() > 0) {
+            String s1 = typeList.get(0).replaceAll("\\?", "");
+            s1 = s1.replaceAll("<", "");
+            s1 = s1.replaceAll(">", "");
+            typeString += s1;
+            for (int i = 1; i < typeList.size(); i++) {
+                String s2 = typeList.get(i).replaceAll("\\?", "");
+                s2 = s2.replaceAll("<", "");
+                s2 = s2.replaceAll(">", "");
+                typeString = typeString + "," + s2;
+            }
+
+        }
+        typeString += ")";
+
+        /**
+         * assertArrayEquals
+         * assertEquals
+         * assertFalse
+         * assertNotEquals
+         * assertNotNull
+         * assertNotSame
+         * assertNull
+         * assertSame
+         * assertThat
+         * assertThrows
+         * assertTrue
+         */
         myClass.addMember(beforeMethod);
         //添加@Test
         myClass.addMember(myMethod);
 
+        for (MethodDeclaration md : methodDeclarationSet) {
+            myClass.addMember(md);
+        }
+        //添加测试目标方法
 
         String methodName = myMethod.getNameAsString();
         //给新的写入文件添加测试方法语句
         List<String> methodContent = new ArrayList<>();
         myMethod.getBody().get().getStatements().forEach(s -> methodContent.add(s.toString()));
         methodContent.forEach(m -> fragmentContent.add(m));
-//        System.out.println(myClass.toString());
-        String packageName = packageList.get(0).getNameAsString().replaceAll("\\.", "_");
-//        System.err.println(packageName);
-
+        String packageName = packageList.get(0).getNameAsString();
+        System.out.println(myClass.toString());
         //写文件
-        writeTestClass(packageName, methodName, myMethod, writeFileImportList, myClass);
-        writeTestFragment(packageName,methodName,myMethod,writeFileImportList,externalVariableDependency,fragmentContent);
-
+        writeTestClass(packageName, methodName, typeString, writeFileImportList, myClass);
+//        writeTestFragment(packageName, methodName, typeString, writeFileImportList, externalVariableDependency, fragmentContent);
     }
 
+    public MethodDeclaration getTargetMethod(List<ImportDeclaration> importList, Expression expression, List<VariableDeclarator> variableDeclarators, List<FieldDeclaration> externalFieldDeclarationList) throws FileNotFoundException {
+        MethodDeclaration targetMethodDeclaration = null;
+        if (expression.asMethodCallExpr().getScope().isPresent()) {
+            //如果是对象+调用方法
+            Expression object = expression.asMethodCallExpr().getScope().get();
+            String methodName = expression.asMethodCallExpr().getNameAsString();
+            List<Expression> arguments = expression.asMethodCallExpr().getArguments();
+            List<String> newTypeList = getVariableTypeList(arguments, variableDeclarators, externalFieldDeclarationList);
+            if (Character.isUpperCase(object.toString().charAt(0))) {
+                //如果调用该方法的对象首字母是大写，说明是类class.xxx()，查看import
+                ImportDeclaration id = getImportDeclartion(importPackageList, object.toString());
+                if(id!=null){
+                    String packageName = getImportDeclartion(importPackageList, object.toString()).getNameAsString().split("." + object.toString())[0];
+                    targetMethodDeclaration = getExternalMethod(methodName, packageName, object.toString(), newTypeList);
+                }
+            } else {
+                //如果调用该方法的对象首字母是小写，而且是对象+方法调用：xxx.xxx()，查看它是什么类型（暂时认为不是基础类型）
+                if (!object.isMethodCallExpr()) {
+                    //如果不是xxx().xxx(),而是xxx.xxx().此处假设类型就是类名
+                    VariableDeclarator vd = getVariableInitialize(object, globelVariableList, variableDeclarators, externalFieldDeclarationList);
+                    if(vd!=null){
+                        String className = getVariableInitialize(object, globelVariableList, variableDeclarators, externalFieldDeclarationList).getType().toString();
+                        ImportDeclaration id = getImportDeclartion(importPackageList, className);
+                        if (id != null) {//保证提取的是类
+                            String packageName = id.getNameAsString().split("." + className)[0];
+                            targetMethodDeclaration = getExternalMethod(methodName, packageName, className, newTypeList);
+                        }
+                    }
+                }
+            }
+        } else {
+            //如果不是对象+调用方法
+            for (MethodDeclaration md : normalMethodList) {//如果是本文件的方法
+                if (md.getName() == expression.asMethodCallExpr().getName()) {
+                    targetMethodDeclaration = md;
+                }
+            }
+            if (targetMethodDeclaration == null) {
+                //说明调用的方法import的
+                String methodName = expression.asMethodCallExpr().getNameAsString();
+                ImportDeclaration id = getImportDeclartion(importPackageList, methodName);
+                if(id!=null){
+                    String importString = id.getNameAsString().split("." + methodName)[0];
+                    String className = importString.split("\\.")[importString.split("\\.").length - 1];
+                    String packageName = importString.split("." + className)[0];
+                    List<Expression> arguments = expression.asMethodCallExpr().getArguments();
+                    List<String> newTypeList = getVariableTypeList(arguments, variableDeclarators, externalFieldDeclarationList);
+                    targetMethodDeclaration = getExternalMethod(methodName, packageName, className, newTypeList);
+                }
+            }
+        }
+        return targetMethodDeclaration;
+    }
+
+    public List<String> getVariableTypeList(List<Expression> arguments, List<VariableDeclarator> variableDeclarators, List<FieldDeclaration> externalFieldDeclarationList) {
+        List<String> variableTypeList = new ArrayList<>();
+        for (Expression expression1 : arguments) {
+            VariableDeclarator vd2 = getVariableInitialize(expression1, globelVariableList, variableDeclarators, externalFieldDeclarationList);
+            if (vd2 != null) {
+                variableTypeList.add(vd2.getTypeAsString());
+            } else {
+                variableTypeList.add(getBasicDataType(expression1));
+            }
+        }
+        return variableTypeList;
+    }
+
+    public MethodDeclaration getExternalMethod(String targetMethodCallName, String packageName, String className, List<String> typeList) throws FileNotFoundException {
+        //targetMethodCallName就是方法名
+        MethodDeclaration externalMethod = null;
+        List<String> MUTList = new ArrayList<>();
+        MUTList = findFileList(new File("MUTClass/"), MUTList);
+        for (String s : MUTList) {
+            s = s.split("\\\\")[1];
+            String path = packageName + "+" + className + "+" + targetMethodCallName;
+            if (s.contains(path)) {
+                if (judgeArguments(s, typeList)) {
+                    CompilationUnit cu2 = constructCompilationUnit(null, "MUTClass/" + s);
+                    externalMethod = cu2.findAll(MethodDeclaration.class).get(0);
+                }
+            }
+        }
+        return externalMethod;
+    }
+
+    public ImportDeclaration getImportDeclartion(List<ImportDeclaration> importDeclarations, String objectType) {
+        for (ImportDeclaration id : importDeclarations) {
+            if (id.getNameAsString().contains("." + objectType)) {
+                //这里就需要对import进行处理
+                String[] s = id.getNameAsString().split("." + objectType);
+                //如果分割后，前一个不是字母，后一个不是字母
+                if (s.length == 1) {
+                    return id;
+                } else if (!String.valueOf(s[1].charAt(0)).matches("[a-zA-Z]+")) {
+                    return id;
+                }
+            }
+        }
+        return null;
+    }
+
+    public String getBasicDataType(Expression expression) {
+        String type = null;
+        if (expression.isIntegerLiteralExpr()) {
+            type = "int";
+        } else if (expression.isLongLiteralExpr()) {
+            type = "long";
+        } else if (expression.isCharLiteralExpr()) {
+            type = "char";
+        } else if (expression.isDoubleLiteralExpr()) {
+            type = "double";
+        } else if (expression.isStringLiteralExpr()) {
+            type = "String";
+        } else if (expression.isBooleanLiteralExpr()) {
+            type = "boolean";
+        }
+        return type;
+    }
+
+    public VariableDeclarator getVariableInitialize(Expression expression, List<FieldDeclaration> fieldDeclarations, List<VariableDeclarator> variableDeclarators, List<FieldDeclaration> externalFieldDeclarationList) {
+        VariableDeclarator result = null;
+        for (VariableDeclarator vd : variableDeclarators) {
+            if (vd.getNameAsExpression().equals(expression)) {
+                result = vd;
+            }
+        }
+        for (FieldDeclaration fd : fieldDeclarations) {
+            if (fd.getVariable(0).getNameAsExpression().equals(expression)) {
+                result = fd.getVariable(0);
+            }
+        }
+        for (FieldDeclaration fd : externalFieldDeclarationList) {
+            if (fd.getVariable(0).getNameAsExpression().equals(expression)) {
+                result = fd.getVariable(0);
+            }
+        }
+        return result;
+    }
 
     //获取目录下所有文件
     public List<String> findFileList(File dir, List<String> fileNames) {
-
         String[] files = dir.list();// 读取目录下的所有目录文件信息
         if (files != null) {
             for (String s : files) {// 循环，添加文件名或回调自身
@@ -311,25 +421,24 @@ public class TestFileAnalysis {
         return fileNames;
     }
 
-    public boolean judgeArguments(String filepath, List<String> arguments){
+    public boolean judgeArguments(String filepath, List<String> arguments) {
         boolean flag = true;
-        for(String s:arguments){
-            if(!filepath.contains(s)){
-                flag = false;
-                break;
+        for (String s : arguments) {
+            if (s != null) {//忽略类型为null的
+                if (!filepath.contains(s)) {
+                    flag = false;
+                    break;
+                }
             }
         }
         return flag;
     }
 
-    public void writeTestClass(String packageName, String methodName, MethodDeclaration myMethod, List<String> writeFileImportList, ClassOrInterfaceDeclaration myClass) {
+    public void writeTestClass(String packageName, String methodName, String typeString, List<String> writeFileImportList, ClassOrInterfaceDeclaration myClass) {
         try {
             String[] filenameArray = FILE_PATH.split("/");
             String filename = filenameArray[filenameArray.length - 1].split("\\.")[0];
-            String parameters = myMethod.getParameters().toString();
-            parameters = "("+parameters.substring(1,parameters.length()-1)+")";
-            String outputFileName = "Test Class/" + packageName + "_" + filename + "_" + methodName + parameters + ".txt";
-//            System.out.println(outputFileName);
+            String outputFileName = "Test Class/" + packageName + "+" + filename + "+" + methodName + "+" + typeString + ".txt";
             BufferedWriter bw = new BufferedWriter(new FileWriter(outputFileName));
             for (String s : writeFileImportList) {
                 bw.write(s);
@@ -343,39 +452,37 @@ public class TestFileAnalysis {
 
     }
 
-    public void writeTestFragment(String packageName, String methodName, MethodDeclaration myMethod, List<String> writeFileImportList, List<String> externalVariableDependency, List<String> fragmentContent) {
-        try {
-            String[] filenameArray = FILE_PATH.split("/");
-            String filename = filenameArray[filenameArray.length - 1].split("\\.")[0];
-            String parameters = myMethod.getParameters().toString();
-            parameters = "("+parameters.substring(1,parameters.length()-1)+")";
-            String outputFileName = "Test Fragment/" + packageName + "_" + filename + "_" + methodName + parameters + ".txt";
-            BufferedWriter bw = new BufferedWriter(new FileWriter(outputFileName));
-            bw.write("test fragment:{\n");
-            bw.write("\timport dependency:{\n");
-            for (String s : writeFileImportList) {
-                bw.write("\t\t" + s);
-            }
-//            for(ImportDeclaration i: importPackageList){
-//                bw.write("\t\t"+i.toString());
+//    public void writeTestFragment(String packageName, String methodName, String typeString, List<String> writeFileImportList, List<String> externalVariableDependency, List<String> fragmentContent) {
+//        try {
+//            String[] filenameArray = FILE_PATH.split("/");
+//            String filename = filenameArray[filenameArray.length - 1].split("\\.")[0];
+//            String outputFileName = "Test Fragment/" + packageName + "_" + filename + "_" + methodName + ".txt";
+//            BufferedWriter bw = new BufferedWriter(new FileWriter(outputFileName));
+//            bw.write("test fragment:{\n");
+//            bw.write("\timport dependency:{\n");
+//            for (String s : writeFileImportList) {
+//                bw.write("\t\t" + s);
 //            }
-            bw.write("\t}\n}");
-            bw.write("\texternal variable dependency:{\n");
-            for (String s : externalVariableDependency) {
-                bw.write("\t\t" + s + "\n");
-            }
-            bw.write("\t},\n");
-            bw.write("\tfragment content:{\n");
-            for (String s : fragmentContent) {
-                bw.write("\t\t" + s + "\n");
-            }
-            bw.write("\t},\n");
-
-            bw.close();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
+////            for(ImportDeclaration i: importPackageList){
+////                bw.write("\t\t"+i.toString());
+////            }
+//            bw.write("\t}\n}");
+//            bw.write("\texternal variable dependency:{\n");
+//            for (String s : externalVariableDependency) {
+//                bw.write("\t\t" + s + "\n");
+//            }
+//            bw.write("\t},\n");
+//            bw.write("\tfragment content:{\n");
+//            for (String s : fragmentContent) {
+//                bw.write("\t\t" + s + "\n");
+//            }
+//            bw.write("\t},\n");
+//
+//            bw.close();
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        }
+//    }
 
     public EnumDeclaration findEnum(String variable, String filePath) throws FileNotFoundException {
         CompilationUnit cu = constructCompilationUnit(null, filePath);
@@ -399,21 +506,17 @@ public class TestFileAnalysis {
             List<VariableDeclarator> variableDeclaratorList = fd.getVariables();
             for (VariableDeclarator vd : variableDeclaratorList) {
                 if (vd.getNameAsString().equals(variable)) {
-//                    System.out.println(fd.getElementType().toString());
                     newImportTypeSet.add(fd.getElementType().toString());
                     resultFieldDeclaration = fd;
-//                    return fd;
                 }
             }
         }
-
         for (String s : newImportTypeSet) {
             for (ImportDeclaration id : newImportDeclarationList) {
                 String[] importNameArray = id.getNameAsString().split("\\.");
                 String importName = importNameArray[importNameArray.length - 1];
                 if (importName.equals(s)) {
                     resultImportDeclaration = id;
-//                    System.out.println(resultImportDeclaration);
                 }
             }
         }
@@ -438,16 +541,5 @@ public class TestFileAnalysis {
         }
         return findFile(newPathString);
     }
-
-//    public static void main(String[] args) throws IOException {
-//        TestFileAnalysis testFileAnalysis = new TestFileAnalysis();
-//        testFileAnalysis.getOriginalTestFragment();
-//        for (int i = 0; i < originalTestFragmentClassList.size(); i++) {
-////            System.out.println("+++" + i);
-////            if (i == 1) {
-//            testFileAnalysis.dependencyAnalysis(i, originalTestFragmentClassList.get(i));
-////            }
-//        }
-//    }
 }
 

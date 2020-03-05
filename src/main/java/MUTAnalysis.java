@@ -228,14 +228,14 @@ public class MUTAnalysis {
         }
         String typeString = "(";
         if (typeList.size() > 0) {
-            String s1 = typeList.get(0).replaceAll("\\?","");
-            s1 = s1.replaceAll("<","");
-            s1 = s1.replaceAll(">","");
+            String s1 = typeList.get(0).replaceAll("\\?", "");
+            s1 = s1.replaceAll("<", "");
+            s1 = s1.replaceAll(">", "");
             typeString += s1;
             for (int i = 1; i < typeList.size(); i++) {
-                String s2 = typeList.get(i).replaceAll("\\?","");
-                s2 = s2.replaceAll("<","");
-                s2 = s2.replaceAll(">","");
+                String s2 = typeList.get(i).replaceAll("\\?", "");
+                s2 = s2.replaceAll("<", "");
+                s2 = s2.replaceAll(">", "");
                 typeString = typeString + "," + s2;
             }
 
@@ -252,13 +252,13 @@ public class MUTAnalysis {
         try {
             String[] filenameArray = FILE_PATH.split("/");
             String filename = filenameArray[filenameArray.length - 1].split("\\.")[0];
-//            String outputFileName = "MUT/" + MD5Util.getMD5(packageName + filename + methodName + typeString) + ".txt";
-            String outputFileName =  packageName + "+" + filename + "+" + methodName + "+" + typeString;
-            String output = "MUT/" +MD5Util.getMD5(outputFileName)+".txt";
+            String outputFileName0 = "MUTClass/" +packageName +"+"+ filename +"+"+ methodName +"+"+ typeString + ".txt";
+            String outputFileName = packageName + "+" + filename + "+" + methodName + "+" + typeString;
+            String output = "MUT/" + MD5Util.getMD5(outputFileName) + ".txt";
 //            System.out.println(outputFileName+": "+output);
 //            System.out.println(parameters);
-
-            BufferedWriter bw = new BufferedWriter(new FileWriter(output));
+            BufferedWriter bw = new BufferedWriter(new FileWriter(outputFileName0));
+//            BufferedWriter bw = new BufferedWriter(new FileWriter(output));
 //            System.err.println(writeFileImportList.size());
             for (String s : writeFileImportList) {
 //                System.out.println(s);
