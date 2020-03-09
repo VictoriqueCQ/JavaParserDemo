@@ -25,19 +25,29 @@ public class MainAnalysis {
             }
         }
         for (int j = 0; j < testFilePathList.size(); j++) {
-//            if (j == 1) {
+//            if (j == 9) {
                 TestFileAnalysis testFileAnalysis = new TestFileAnalysis(testFilePathList.get(j));
+//                System.out.println(testFilePathList.get(j));
                 List<String> originalTestFragmentClassList = testFileAnalysis.getOriginalTestFragment();
                 for (int i = 0; i < originalTestFragmentClassList.size(); i++) {
-//                    if (i == 15) {
+//                    if(originalTestFragmentClassList.get(i).contains("forOverrideRequest")){
+//                        System.out.println(i);
+//                    }
+//                    if (i == 2) {
+//                    if(originalTestFragmentClassList.get(i).contains("shouldRetryTwiceWithAirplaneModeOffAndNoNetworkInfo")){
+//                        System.out.println(j+"+++"+i+"+++");
+//                    }
+                    if(originalTestFragmentClassList.get(i).contains("createwithBitmapcacheHit")){
+                        System.out.println(j+"+++"+i+"+++");
+                    }
                         testFileAnalysis.dependencyAnalysis(originalTestFragmentClassList.get(i));
 //                    }
                 }
 //            }
         }
-//        for(int j = 0;j<testFilePathList.size();j++){
+//        for(int j = 0;j<filePathList.size();j++){
 ////            if(j == 0){
-//                MUTAnalysis mutAnalysis = new MUTAnalysis(testFilePathList.get(j));
+//                MUTAnalysis mutAnalysis = new MUTAnalysis(filePathList.get(j));
 //                List<String> originalMethodClassList = mutAnalysis.getOriginalMethod();
 //                for(int i = 0 ;i<originalMethodClassList.size();i++){
 ////                    if(i==0){

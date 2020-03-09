@@ -7,7 +7,6 @@ import com.github.javaparser.ast.body.*;
 import com.github.javaparser.ast.expr.Expression;
 import com.github.javaparser.ast.expr.MethodCallExpr;
 import com.github.javaparser.ast.expr.ObjectCreationExpr;
-import com.github.javaparser.ast.stmt.IfStmt;
 import com.github.javaparser.symbolsolver.JavaSymbolSolver;
 import com.github.javaparser.symbolsolver.model.resolution.TypeSolver;
 import com.github.javaparser.symbolsolver.resolution.typesolvers.CombinedTypeSolver;
@@ -75,6 +74,8 @@ public class MUTAnalysis {
         });
         //获取方法并转成类
         cu.findAll(MethodDeclaration.class).forEach(md -> originalMethodClassList.add("class TestFragment{\n" + md.toString() + "}"));
+        //获取所有构造方法并转成类
+        cu.findAll(ConstructorDeclaration.class).forEach(cd->originalMethodClassList.add("class "+cd.getNameAsString()+"{\n" + cd.toString() + "}"));
         return originalMethodClassList;
     }
 
@@ -121,156 +122,277 @@ public class MUTAnalysis {
             }
         });
 //        globelVariableList.forEach(gv-> System.out.println(gv.getVariable(0)));
-        //获取if，switch中的变量
-        cu2.findAll(IfStmt.class).forEach(i -> {
-            try {
-                for (FieldDeclaration fd : globelVariableList) {
-//                    System.out.println(fd.getVariables().toString());;
-//                    System.out.println(i.getCondition().toString().contains(fd.getVariable(0).toString()));
-                }
-
-            } catch (Exception e) {
-//                System.err.println(e.getMessage());
-            }
-//            if(i.getCondition().isAssignExpr()){
-//                System.out.println();
-//            }
-        });
 
         //初始化ClassOrInterfaceDeclaration,用于构造新的测试片段类
         ClassOrInterfaceDeclaration myClass = new ClassOrInterfaceDeclaration();
         //获取MethodDeclanation，用于后续添加语句
-        MethodDeclaration myMethod = cu2.findAll(MethodDeclaration.class).get(0);
-        myClass.setName("MUT");
-        Set<String> importTypeSet = new HashSet<>();
-        cu2.findAll(VariableDeclarator.class).forEach(v -> importTypeSet.add(v.getTypeAsString()));
+        if(cu2.findAll(MethodDeclaration.class).size()!=0){
+            MethodDeclaration myMethod = cu2.findAll(MethodDeclaration.class).get(0);
+            myClass.setName("MUT");
+            Set<String> importTypeSet = new HashSet<>();
+            cu2.findAll(VariableDeclarator.class).forEach(v -> importTypeSet.add(v.getTypeAsString()));
 
-        Map<Expression, Boolean> tempAbnormalArgumentMap = new HashMap<>(abnormalArgumentMap);
-        for (Map.Entry<Expression, Boolean> entry : abnormalArgumentMap.entrySet()) {
-            Expression var = entry.getKey();
-            boolean isGlobal = entry.getValue();
-            for (VariableTuple vt : variableList) {
-                if (var.toString().equals(vt.name) && (isGlobal == vt.isGlobal)) {
-                    if (vt.original.getClass().equals(FieldDeclaration.class)) {
-                        FieldDeclaration fd = (FieldDeclaration) vt.original;
-                        myClass.addMember(fd);
-                        importTypeSet.add(fd.getElementType().toString());
-                        tempAbnormalArgumentMap.remove(var);
+            Map<Expression, Boolean> tempAbnormalArgumentMap = new HashMap<>(abnormalArgumentMap);
+            for (Map.Entry<Expression, Boolean> entry : abnormalArgumentMap.entrySet()) {
+                Expression var = entry.getKey();
+                boolean isGlobal = entry.getValue();
+                for (VariableTuple vt : variableList) {
+                    if (var.toString().equals(vt.name) && (isGlobal == vt.isGlobal)) {
+                        if (vt.original.getClass().equals(FieldDeclaration.class)) {
+                            FieldDeclaration fd = (FieldDeclaration) vt.original;
+                            myClass.addMember(fd);
+                            importTypeSet.add(fd.getElementType().toString());
+                            tempAbnormalArgumentMap.remove(var);
+                        }
                     }
                 }
             }
-        }
 
-        for (Map.Entry<Expression, Boolean> entry : tempAbnormalArgumentMap.entrySet()) {
-            if (entry.getValue() == true) {
-                importTypeSet.add(entry.getKey().toString());
+            for (Map.Entry<Expression, Boolean> entry : tempAbnormalArgumentMap.entrySet()) {
+                if (entry.getValue() == true) {
+                    importTypeSet.add(entry.getKey().toString());
+                }
             }
-        }
 
-        //处理import
-        List<ImportDeclaration> importDeclarationList = new ArrayList<>();
-        List<ImportDeclaration> importList = new ArrayList<>();
-        for (String s : importTypeSet) {
-            for (ImportDeclaration id : importPackageList) {
-                String[] importNameArray = id.getNameAsString().split("\\.");
-                String importName = importNameArray[importNameArray.length - 1];
-                if (importName.equals(s)) {
-                    importDeclarationList.add(id);
-                    importList.add(id);
+            //处理import
+            List<ImportDeclaration> importDeclarationList = new ArrayList<>();
+            List<ImportDeclaration> importList = new ArrayList<>();
+            for (String s : importTypeSet) {
+                for (ImportDeclaration id : importPackageList) {
+                    String[] importNameArray = id.getNameAsString().split("\\.");
+                    String importName = importNameArray[importNameArray.length - 1];
+                    if (importName.equals(s)) {
+                        importDeclarationList.add(id);
+                        importList.add(id);
+                    }
                 }
             }
-        }
-        List<String> writeFileImportList = new ArrayList<>();
-        Map<String, String> importMap = new HashMap<>();
-        for (ImportDeclaration i : importList) {
-            String path = "D:/picasso/src/main/java/" + i.getNameAsString().replaceAll("\\.", "/");
-            String newPath = findFile(path);
-            if (newPath.length() == 0) {
-                writeFileImportList.add(i.toString());
-            }
-            if (newPath.length() > 0) {
-                String tempPath = newPath.replaceAll("\\.java", "");
-                String variable = path.replaceAll(tempPath + "/", "");
-                importMap.put(variable, newPath);
-            }
-        }
-        for (Map.Entry<String, String> entry : importMap.entrySet()) {
-//            System.err.println(entry.getKey()+" "+entry.getValue());
-            //暂时没在测试片段提取中加判断是不是枚举类型的代码
-            if (entry.getKey().contains("/")) {
-                EnumDeclaration enumDeclaration = findEnum(entry.getKey(), entry.getValue());
-                if (enumDeclaration != null) {
-//                    System.out.println(enumDeclaration);
-                    myClass.addMember(enumDeclaration);
-                }
-            } else {
-                Map<FieldDeclaration, ImportDeclaration> declarationMap = findVariable(entry.getKey(), entry.getValue());
-                FieldDeclaration f = new FieldDeclaration();
-                ImportDeclaration i = null;
-                for (Map.Entry<FieldDeclaration, ImportDeclaration> entry1 : declarationMap.entrySet()) {
-                    f = entry1.getKey();
-                    i = entry1.getValue();
-                }
-                if (i != null) {
+            List<String> writeFileImportList = new ArrayList<>();
+            Map<String, String> importMap = new HashMap<>();
+            for (ImportDeclaration i : importList) {
+                String path = "D:/picasso/src/main/java/" + i.getNameAsString().replaceAll("\\.", "/");
+                String newPath = findFile(path);
+                if (newPath.length() == 0) {
                     writeFileImportList.add(i.toString());
                 }
-                if (f != null) {
-//                System.err.println(f);
-                    myClass.addMember(f);
+                if (newPath.length() > 0) {
+                    String tempPath = newPath.replaceAll("\\.java", "");
+                    String variable = path.replaceAll(tempPath + "/", "");
+                    importMap.put(variable, newPath);
                 }
             }
-        }
-        String packageName = packageList.get(0).getNameAsString();
-        NodeList<Parameter> parameters = myMethod.getParameters();
-        List<String> typeList = new ArrayList<>();
-        for (Parameter p : parameters) {
-            typeList.add(p.getTypeAsString());
-        }
-        String typeString = "(";
-        if (typeList.size() > 0) {
-            String s1 = typeList.get(0).replaceAll("\\?", "");
-            s1 = s1.replaceAll("<", "");
-            s1 = s1.replaceAll(">", "");
-            typeString += s1;
-            for (int i = 1; i < typeList.size(); i++) {
-                String s2 = typeList.get(i).replaceAll("\\?", "");
-                s2 = s2.replaceAll("<", "");
-                s2 = s2.replaceAll(">", "");
-                typeString = typeString + "," + s2;
+            for (Map.Entry<String, String> entry : importMap.entrySet()) {
+//            System.err.println(entry.getKey()+" "+entry.getValue());
+                //暂时没在测试片段提取中加判断是不是枚举类型的代码
+                if (entry.getKey().contains("/")) {
+                    EnumDeclaration enumDeclaration = findEnum(entry.getKey(), entry.getValue());
+                    if (enumDeclaration != null) {
+//                    System.out.println(enumDeclaration);
+                        myClass.addMember(enumDeclaration);
+                    }
+                } else {
+                    Map<FieldDeclaration, ImportDeclaration> declarationMap = findVariable(entry.getKey(), entry.getValue());
+                    FieldDeclaration f = new FieldDeclaration();
+                    ImportDeclaration i = null;
+                    for (Map.Entry<FieldDeclaration, ImportDeclaration> entry1 : declarationMap.entrySet()) {
+                        f = entry1.getKey();
+                        i = entry1.getValue();
+                    }
+                    if (i != null) {
+                        writeFileImportList.add(i.toString());
+                    }
+                    if (f != null) {
+//                System.err.println(f);
+                        myClass.addMember(f);
+                    }
+                }
             }
+            String packageName = packageList.get(0).getNameAsString();
+            NodeList<Parameter> parameters = myMethod.getParameters();
+            List<String> typeList = new ArrayList<>();
+            for (Parameter p : parameters) {
+                typeList.add(p.getTypeAsString());
+            }
+            String typeString = "(";
+            if (typeList.size() > 0) {
+                String s1 = typeList.get(0).replaceAll("\\?", "");
+                s1 = s1.replaceAll("<", "");
+                s1 = s1.replaceAll(">", "");
+                typeString += s1;
+                for (int i = 1; i < typeList.size(); i++) {
+                    String s2 = typeList.get(i).replaceAll("\\?", "");
+                    s2 = s2.replaceAll("<", "");
+                    s2 = s2.replaceAll(">", "");
+                    typeString = typeString + "," + s2;
+                }
 
-        }
-        typeString += ")";
+            }
+            typeString += ")";
 
 //        parameters = "("+parameters.substring(1,parameters.length()-1)+")";
 
-        myClass.addMember(myMethod);
-        String methodName = myMethod.getNameAsString();
+            myClass.addMember(myMethod);
+            String methodName = myMethod.getNameAsString();
 
 //        System.out.println(methodName);
 //        System.out.println(myClass);
-        try {
-            String[] filenameArray = FILE_PATH.split("/");
-            String filename = filenameArray[filenameArray.length - 1].split("\\.")[0];
-            String outputFileName0 = "MUTClass/" +packageName +"+"+ filename +"+"+ methodName +"+"+ typeString + ".txt";
-            String outputFileName = packageName + "+" + filename + "+" + methodName + "+" + typeString;
-            String output = "MUT/" + MD5Util.getMD5(outputFileName) + ".txt";
+            try {
+                String[] filenameArray = FILE_PATH.split("/");
+                String filename = filenameArray[filenameArray.length - 1].split("\\.")[0];
+                String outputFileName0 = "MUTClass/" +packageName +"+"+ filename +"+"+ methodName +"+"+ typeString + ".txt";
+                String outputFileName = packageName + "+" + filename + "+" + methodName + "+" + typeString;
+                String output = "MUT/" + MD5Util.getMD5(outputFileName) + ".txt";
 //            System.out.println(outputFileName+": "+output);
 //            System.out.println(parameters);
-            BufferedWriter bw = new BufferedWriter(new FileWriter(outputFileName0));
+                BufferedWriter bw = new BufferedWriter(new FileWriter(outputFileName0));
 //            BufferedWriter bw = new BufferedWriter(new FileWriter(output));
 //            System.err.println(writeFileImportList.size());
-            for (String s : writeFileImportList) {
+                for (String s : writeFileImportList) {
 //                System.out.println(s);
 //                System.out.println(outputFileName);
-                bw.write(s);
+                    bw.write(s);
+                }
+                bw.write(myClass.toString());
+                bw.close();
+                System.err.println("文件写入成功");
+            } catch (Exception e) {
+                e.printStackTrace();
             }
-            bw.write(myClass.toString());
-            bw.close();
-            System.err.println("文件写入成功");
-        } catch (Exception e) {
-            e.printStackTrace();
+        }else{
+            ConstructorDeclaration myMethod = cu2.findAll(ConstructorDeclaration.class).get(0);
+            myClass.setName("MUT");
+            Set<String> importTypeSet = new HashSet<>();
+            cu2.findAll(VariableDeclarator.class).forEach(v -> importTypeSet.add(v.getTypeAsString()));
+
+            Map<Expression, Boolean> tempAbnormalArgumentMap = new HashMap<>(abnormalArgumentMap);
+            for (Map.Entry<Expression, Boolean> entry : abnormalArgumentMap.entrySet()) {
+                Expression var = entry.getKey();
+                boolean isGlobal = entry.getValue();
+                for (VariableTuple vt : variableList) {
+                    if (var.toString().equals(vt.name) && (isGlobal == vt.isGlobal)) {
+                        if (vt.original.getClass().equals(FieldDeclaration.class)) {
+                            FieldDeclaration fd = (FieldDeclaration) vt.original;
+                            myClass.addMember(fd);
+                            importTypeSet.add(fd.getElementType().toString());
+                            tempAbnormalArgumentMap.remove(var);
+                        }
+                    }
+                }
+            }
+
+            for (Map.Entry<Expression, Boolean> entry : tempAbnormalArgumentMap.entrySet()) {
+                if (entry.getValue() == true) {
+                    importTypeSet.add(entry.getKey().toString());
+                }
+            }
+
+            //处理import
+            List<ImportDeclaration> importDeclarationList = new ArrayList<>();
+            List<ImportDeclaration> importList = new ArrayList<>();
+            for (String s : importTypeSet) {
+                for (ImportDeclaration id : importPackageList) {
+                    String[] importNameArray = id.getNameAsString().split("\\.");
+                    String importName = importNameArray[importNameArray.length - 1];
+                    if (importName.equals(s)) {
+                        importDeclarationList.add(id);
+                        importList.add(id);
+                    }
+                }
+            }
+            List<String> writeFileImportList = new ArrayList<>();
+            Map<String, String> importMap = new HashMap<>();
+            for (ImportDeclaration i : importList) {
+                String path = "D:/picasso/src/main/java/" + i.getNameAsString().replaceAll("\\.", "/");
+                String newPath = findFile(path);
+                if (newPath.length() == 0) {
+                    writeFileImportList.add(i.toString());
+                }
+                if (newPath.length() > 0) {
+                    String tempPath = newPath.replaceAll("\\.java", "");
+                    String variable = path.replaceAll(tempPath + "/", "");
+                    importMap.put(variable, newPath);
+                }
+            }
+            for (Map.Entry<String, String> entry : importMap.entrySet()) {
+//            System.err.println(entry.getKey()+" "+entry.getValue());
+                //暂时没在测试片段提取中加判断是不是枚举类型的代码
+                if (entry.getKey().contains("/")) {
+                    EnumDeclaration enumDeclaration = findEnum(entry.getKey(), entry.getValue());
+                    if (enumDeclaration != null) {
+//                    System.out.println(enumDeclaration);
+                        myClass.addMember(enumDeclaration);
+                    }
+                } else {
+                    Map<FieldDeclaration, ImportDeclaration> declarationMap = findVariable(entry.getKey(), entry.getValue());
+                    FieldDeclaration f = new FieldDeclaration();
+                    ImportDeclaration i = null;
+                    for (Map.Entry<FieldDeclaration, ImportDeclaration> entry1 : declarationMap.entrySet()) {
+                        f = entry1.getKey();
+                        i = entry1.getValue();
+                    }
+                    if (i != null) {
+                        writeFileImportList.add(i.toString());
+                    }
+                    if (f != null) {
+//                System.err.println(f);
+                        myClass.addMember(f);
+                    }
+                }
+            }
+            String packageName = packageList.get(0).getNameAsString();
+            NodeList<Parameter> parameters = myMethod.getParameters();
+            List<String> typeList = new ArrayList<>();
+            for (Parameter p : parameters) {
+                typeList.add(p.getTypeAsString());
+            }
+            String typeString = "(";
+            if (typeList.size() > 0) {
+                String s1 = typeList.get(0).replaceAll("\\?", "");
+                s1 = s1.replaceAll("<", "");
+                s1 = s1.replaceAll(">", "");
+                typeString += s1;
+                for (int i = 1; i < typeList.size(); i++) {
+                    String s2 = typeList.get(i).replaceAll("\\?", "");
+                    s2 = s2.replaceAll("<", "");
+                    s2 = s2.replaceAll(">", "");
+                    typeString = typeString + "," + s2;
+                }
+
+            }
+            typeString += ")";
+
+//        parameters = "("+parameters.substring(1,parameters.length()-1)+")";
+
+            myClass.addMember(myMethod);
+            String methodName = myMethod.getNameAsString();
+
+//        System.out.println(methodName);
+//        System.out.println(myClass);
+            try {
+                String[] filenameArray = FILE_PATH.split("/");
+                String filename = filenameArray[filenameArray.length - 1].split("\\.")[0];
+                String outputFileName0 = "MUTClass/" +packageName +"+"+ filename +"+"+ methodName +"+"+ typeString + ".txt";
+                String outputFileName = packageName + "+" + filename + "+" + methodName + "+" + typeString;
+                String output = "MUT/" + MD5Util.getMD5(outputFileName) + ".txt";
+//            System.out.println(outputFileName+": "+output);
+//            System.out.println(parameters);
+                BufferedWriter bw = new BufferedWriter(new FileWriter(outputFileName0));
+//            BufferedWriter bw = new BufferedWriter(new FileWriter(output));
+//            System.err.println(writeFileImportList.size());
+                for (String s : writeFileImportList) {
+//                System.out.println(s);
+//                System.out.println(outputFileName);
+                    bw.write(s);
+                }
+                bw.write(myClass.toString());
+                bw.close();
+                System.err.println("文件写入成功");
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
+
+
     }
 
     public EnumDeclaration findEnum(String variable, String filePath) throws FileNotFoundException {

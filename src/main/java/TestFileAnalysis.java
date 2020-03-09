@@ -4,6 +4,7 @@ import com.github.javaparser.ast.ImportDeclaration;
 import com.github.javaparser.ast.NodeList;
 import com.github.javaparser.ast.PackageDeclaration;
 import com.github.javaparser.ast.body.*;
+import com.github.javaparser.ast.comments.JavadocComment;
 import com.github.javaparser.ast.expr.Expression;
 import com.github.javaparser.ast.expr.MethodCallExpr;
 import com.github.javaparser.ast.expr.ObjectCreationExpr;
@@ -79,9 +80,11 @@ public class TestFileAnalysis {
         List<FieldDeclaration> externalFieldDeclarationList = new ArrayList<>();
         List<String> fragmentContent = new ArrayList<>();
         List<String> methodDependency = new ArrayList<>();
-        List<MethodDeclaration> methodDeclarationList = new ArrayList<>();
+//        List<MethodDeclaration> methodDeclarationList = new ArrayList<>();
         Set<MethodDeclaration> methodDeclarationSet = new HashSet<>();
-        MethodDeclaration targetMethodDeclaration = null;
+        Set<ClassOrInterfaceDeclaration> constructorClassDeclarationSet = new HashSet<>();
+//        Set<MethodModel> methodModelSet = new HashSet<>();
+//        MethodDeclaration targetMethodDeclaration = null;
 
         //获得compilationUnit，用于后续分析
         CompilationUnit cu = constructCompilationUnit(testFragmentString, null);
@@ -149,9 +152,12 @@ public class TestFileAnalysis {
                 }
             }
         }
-        //获取所有函数
+        //获取所有调用函数
         List<MethodCallExpr> methodCallList = cu.findAll(MethodCallExpr.class);
         List<VariableDeclarator> variableDeclarators = cu.findAll(VariableDeclarator.class);
+        //所有对象构造函数
+        List<ObjectCreationExpr> objectCreationExprList = cu.findAll(ObjectCreationExpr.class);
+//        objectCreationExprList.forEach(System.out::println);
 
 
         for (Map.Entry<Expression, Boolean> entry : tempAbnormalArgumentMap.entrySet()) {
@@ -159,6 +165,8 @@ public class TestFileAnalysis {
                 importTypeSet.add(entry.getKey().toString());
             }
         }
+
+
         //处理import
         List<ImportDeclaration> importList = new ArrayList<>();
         for (String s : importTypeSet) {
@@ -199,12 +207,110 @@ public class TestFileAnalysis {
             externalVariableDependency.add(f.toString());
         }
 
+        //处理调用函数依赖
         for (MethodCallExpr mce : methodCallList) {
             if (!mce.toString().contains("assert")) {
-                MethodDeclaration method = getTargetMethod(importList, mce, variableDeclarators, externalFieldDeclarationList);
-                if (method != null) {
+                MethodModel methodModel = getTargetMethod(mce, variableDeclarators, externalFieldDeclarationList);
+                if (methodModel != null) {
+                    MethodDeclaration method = methodModel.getMethodBody();
+                    JavadocComment jc = new JavadocComment();
+                    String javaDocCommentString = method.hasJavaDocComment() ? method.getJavadocComment().get().getContent() + "\n" : "";
+                    javaDocCommentString +=
+                            "packagename:" + methodModel.getPackageName() + "\n" +
+                                    "classname:" + methodModel.getClassName() + "\n" +
+                                    "methodname:" + methodModel.getMethodName() + "\n" +
+                                    "parametertype:" + methodModel.getParameterTypeList();
+                    jc.setContent(javaDocCommentString);
+                    method.setJavadocComment(jc);
                     methodDependency.add(method.toString());
-                    methodDeclarationList.add(method);
+//                    methodDeclarationList.add(method);
+                    methodDeclarationSet.add(method);
+                }
+            }
+        }
+//        objectCreationExprList.forEach(System.out::println);
+        //处理对象构造函数依赖
+        for (ObjectCreationExpr oce : objectCreationExprList) {
+            String objectClass = oce.getTypeAsString();
+            ImportDeclaration id = getImportDeclartion(importPackageList, objectClass);
+//            System.out.println(id);
+            if (id == null) {
+                //说明可能是内部类
+                for (ClassOrInterfaceDeclaration coid : innerClassList) {
+                    if (coid.getNameAsString().equals(objectClass)) {
+                        List<ConstructorDeclaration> constructorDeclarationList = coid.getConstructors();
+                        List<Expression> arguments = oce.getArguments();
+                        List<String> argumentsType = getVariableTypeList(arguments, variableDeclarators, externalFieldDeclarationList);
+                        for (ConstructorDeclaration cd : constructorDeclarationList) {
+                            List<Parameter> parameters = cd.getParameters();
+                            List<String> parametersType = new ArrayList<>();
+                            for (Parameter p : parameters) {
+                                parametersType.add(p.getTypeAsString());
+                            }
+//                            boolean flag = true;
+//                            if (argumentsType.size() == parametersType.size()) {
+//                                for (int i = 0; i < argumentsType.size(); i++) {
+//                                    if(argumentsType.get(i)!=null){
+//                                        if (!argumentsType.get(i).equals(parametersType.get(i))) {
+//                                            flag = false;
+//                                            break;
+//                                        }
+//                                    }
+//                                }
+//                            }
+                            String parameterTypeList;
+//                            if (flag) {
+////                                System.out.println(flag);
+                            if (parametersType.size() == 0) {
+                                parameterTypeList = "()";
+                            } else {
+                                StringBuilder s = new StringBuilder("(" + parametersType.get(0));
+                                for (int i = 1; i < parametersType.size(); i++) {
+                                    s.append(",").append(parametersType.get(i));
+                                }
+                                s.append(")");
+                                parameterTypeList = s.toString();
+                            }
+                            JavadocComment jc = new JavadocComment();
+                            String javaDocCommentString = cd.hasJavaDocComment() ? cd.getJavadocComment().get().getContent() + "\n" : "";
+                            if (!javaDocCommentString.contains("packagename")) {
+                                javaDocCommentString +=
+                                        "packagename:" + packageList.get(0).getNameAsString() + "\n" +
+                                                "classname:" + FILE_PATH.split("/")[FILE_PATH.split("/").length - 1].split("\\.")[0] + "\n" +
+                                                "methodname:" + oce.getTypeAsString() + "\n" +
+                                                "parametertype:" + parameterTypeList;
+                                jc.setContent(javaDocCommentString);
+                                cd.setJavadocComment(jc);
+                            }
+                        }
+                        constructorClassDeclarationSet.add(coid);
+                        break;
+                    }
+
+                }
+
+            }else{
+                //也可能是其他类的构造函数
+                String packageName = packageList.get(0).getNameAsString();
+                List<Expression> arguments = oce.getArguments();
+                List<String> argumentsType = getVariableTypeList(arguments, variableDeclarators, externalFieldDeclarationList);
+                MethodModel methodModel = getExternalMethod(objectClass,packageName,objectClass,argumentsType);
+
+                if (methodModel != null) {
+                    System.out.println(methodModel.toString());
+                    MethodDeclaration method = methodModel.getMethodBody();
+                    JavadocComment jc = new JavadocComment();
+                    System.out.println(method);
+                    String javaDocCommentString = method.hasJavaDocComment() ? method.getJavadocComment().get().getContent() + "\n" : "";
+                    javaDocCommentString +=
+                            "packagename:" + methodModel.getPackageName() + "\n" +
+                                    "classname:" + methodModel.getClassName() + "\n" +
+                                    "methodname:" + methodModel.getMethodName() + "\n" +
+                                    "parametertype:" + methodModel.getParameterTypeList();
+                    jc.setContent(javaDocCommentString);
+                    method.setJavadocComment(jc);
+                    methodDependency.add(method.toString());
+//                    methodDeclarationList.add(method);
                     methodDeclarationSet.add(method);
                 }
             }
@@ -252,6 +358,12 @@ public class TestFileAnalysis {
         for (MethodDeclaration md : methodDeclarationSet) {
             myClass.addMember(md);
         }
+        for (ClassOrInterfaceDeclaration coid : constructorClassDeclarationSet) {
+            myClass.addMember(coid);
+        }
+//        for (ConstructorDeclaration cd : constructorDeclarationSet) {
+//            myClass.addMember(cd);
+//        }
         //添加测试目标方法
 
         String methodName = myMethod.getNameAsString();
@@ -260,14 +372,14 @@ public class TestFileAnalysis {
         myMethod.getBody().get().getStatements().forEach(s -> methodContent.add(s.toString()));
         methodContent.forEach(m -> fragmentContent.add(m));
         String packageName = packageList.get(0).getNameAsString();
-        System.out.println(myClass.toString());
+//        System.out.println(myClass.toString());
         //写文件
         writeTestClass(packageName, methodName, typeString, writeFileImportList, myClass);
 //        writeTestFragment(packageName, methodName, typeString, writeFileImportList, externalVariableDependency, fragmentContent);
     }
 
-    public MethodDeclaration getTargetMethod(List<ImportDeclaration> importList, Expression expression, List<VariableDeclarator> variableDeclarators, List<FieldDeclaration> externalFieldDeclarationList) throws FileNotFoundException {
-        MethodDeclaration targetMethodDeclaration = null;
+    public MethodModel getTargetMethod(Expression expression, List<VariableDeclarator> variableDeclarators, List<FieldDeclaration> externalFieldDeclarationList) throws FileNotFoundException {
+        MethodModel targetMethodModel = null;
         if (expression.asMethodCallExpr().getScope().isPresent()) {
             //如果是对象+调用方法
             Expression object = expression.asMethodCallExpr().getScope().get();
@@ -277,47 +389,85 @@ public class TestFileAnalysis {
             if (Character.isUpperCase(object.toString().charAt(0))) {
                 //如果调用该方法的对象首字母是大写，说明是类class.xxx()，查看import
                 ImportDeclaration id = getImportDeclartion(importPackageList, object.toString());
-                if(id!=null){
+                if (id != null) {
                     String packageName = getImportDeclartion(importPackageList, object.toString()).getNameAsString().split("." + object.toString())[0];
-                    targetMethodDeclaration = getExternalMethod(methodName, packageName, object.toString(), newTypeList);
+                    targetMethodModel = getExternalMethod(methodName, packageName, object.toString(), newTypeList);
+                } else {
+                    //认为是本项目的方法
+                    String packageName = packageList.get(0).getNameAsString();
+                    targetMethodModel = getExternalMethod(methodName, packageName, object.toString(), newTypeList);
                 }
             } else {
                 //如果调用该方法的对象首字母是小写，而且是对象+方法调用：xxx.xxx()，查看它是什么类型（暂时认为不是基础类型）
                 if (!object.isMethodCallExpr()) {
                     //如果不是xxx().xxx(),而是xxx.xxx().此处假设类型就是类名
                     VariableDeclarator vd = getVariableInitialize(object, globelVariableList, variableDeclarators, externalFieldDeclarationList);
-                    if(vd!=null){
+                    if (vd != null) {
                         String className = getVariableInitialize(object, globelVariableList, variableDeclarators, externalFieldDeclarationList).getType().toString();
                         ImportDeclaration id = getImportDeclartion(importPackageList, className);
                         if (id != null) {//保证提取的是类
                             String packageName = id.getNameAsString().split("." + className)[0];
-                            targetMethodDeclaration = getExternalMethod(methodName, packageName, className, newTypeList);
+                            targetMethodModel = getExternalMethod(methodName, packageName, className, newTypeList);
+                        }else{
+                            //可能是项目内的
+                            String packageName = packageList.get(0).getNameAsString();
+                            targetMethodModel = getExternalMethod(methodName,packageName,className,newTypeList);
                         }
                     }
                 }
             }
         } else {
+            String methodName = expression.asMethodCallExpr().getNameAsString();
             //如果不是对象+调用方法
             for (MethodDeclaration md : normalMethodList) {//如果是本文件的方法
-                if (md.getName() == expression.asMethodCallExpr().getName()) {
-                    targetMethodDeclaration = md;
+                String packageName = packageList.get(0).getNameAsString();
+                String className = FILE_PATH.split("/")[FILE_PATH.split("/").length - 1].split("\\.")[0];
+                List<Expression> arguments = expression.asMethodCallExpr().getArguments();
+                List<String> newTypeList = getVariableTypeList(arguments, variableDeclarators, externalFieldDeclarationList);
+                if (matchMethod(methodName, newTypeList, md)) {
+                    //说明是同一方法
+                    targetMethodModel = new MethodModel(packageName, className, methodName, newTypeList, md);
                 }
             }
-            if (targetMethodDeclaration == null) {
+            if (targetMethodModel == null) {
                 //说明调用的方法import的
-                String methodName = expression.asMethodCallExpr().getNameAsString();
                 ImportDeclaration id = getImportDeclartion(importPackageList, methodName);
-                if(id!=null){
+                if (id != null) {
                     String importString = id.getNameAsString().split("." + methodName)[0];
                     String className = importString.split("\\.")[importString.split("\\.").length - 1];
                     String packageName = importString.split("." + className)[0];
                     List<Expression> arguments = expression.asMethodCallExpr().getArguments();
                     List<String> newTypeList = getVariableTypeList(arguments, variableDeclarators, externalFieldDeclarationList);
-                    targetMethodDeclaration = getExternalMethod(methodName, packageName, className, newTypeList);
+                    targetMethodModel = getExternalMethod(methodName, packageName, className, newTypeList);
                 }
             }
         }
-        return targetMethodDeclaration;
+        return targetMethodModel;
+    }
+
+    public boolean matchMethod(String methodName, List<String> typeList, MethodDeclaration methodDeclaration) {
+        boolean flag = true;
+        String name = methodDeclaration.getNameAsString();
+        List<Parameter> parameterList = methodDeclaration.getParameters();
+        List<String> parameterString = new ArrayList<>();
+        for (Parameter p : parameterList) {
+            parameterString.add(p.getTypeAsString());
+        }
+        if (!methodName.equals(name)) {
+            flag = false;
+        } else if (typeList.size() != parameterString.size()) {
+            flag = false;
+        } else {
+            for (int i = 0; i < typeList.size(); i++) {
+                if (typeList.get(i) != null) {
+                    if (!typeList.get(i).equals(parameterString.get(i))) {
+                        flag = false;
+                        break;
+                    }
+                }
+            }
+        }
+        return flag;
     }
 
     public List<String> getVariableTypeList(List<Expression> arguments, List<VariableDeclarator> variableDeclarators, List<FieldDeclaration> externalFieldDeclarationList) {
@@ -327,28 +477,71 @@ public class TestFileAnalysis {
             if (vd2 != null) {
                 variableTypeList.add(vd2.getTypeAsString());
             } else {
-                variableTypeList.add(getBasicDataType(expression1));
+                String basicType = getBasicDataType(expression1);
+                if (basicType != null) {
+                    variableTypeList.add(getBasicDataType(expression1));
+                } else {
+
+                }
             }
         }
         return variableTypeList;
     }
 
-    public MethodDeclaration getExternalMethod(String targetMethodCallName, String packageName, String className, List<String> typeList) throws FileNotFoundException {
+    public MethodModel getExternalMethod(String targetMethodCallName, String packageName, String className, List<String> typeList) throws FileNotFoundException {
         //targetMethodCallName就是方法名
-        MethodDeclaration externalMethod = null;
-        List<String> MUTList = new ArrayList<>();
-        MUTList = findFileList(new File("MUTClass/"), MUTList);
-        for (String s : MUTList) {
-            s = s.split("\\\\")[1];
-            String path = packageName + "+" + className + "+" + targetMethodCallName;
-            if (s.contains(path)) {
-                if (judgeArguments(s, typeList)) {
-                    CompilationUnit cu2 = constructCompilationUnit(null, "MUTClass/" + s);
-                    externalMethod = cu2.findAll(MethodDeclaration.class).get(0);
+        if(!targetMethodCallName.equals(className)){
+            //不是构造函数
+            MethodDeclaration externalMethod = null;
+            List<String> MUTList = new ArrayList<>();
+            MUTList = findFileList(new File("MUTClass/"), MUTList);
+            for (String s : MUTList) {
+                s = s.split("\\\\")[1];
+                String path = packageName + "+" + className + "+" + targetMethodCallName;
+                if (s.contains(path)) {
+                    if (judgeArguments(s, typeList)) {
+                        CompilationUnit cu2 = constructCompilationUnit(null, "MUTClass/" + s);
+                        List<MethodDeclaration> methodDeclarationList = cu2.findAll(MethodDeclaration.class);
+                        for (MethodDeclaration md : methodDeclarationList) {
+                            if (md.getNameAsString().equals(targetMethodCallName)) {
+                                externalMethod = md;
+                            }
+                        }
+
+                    }
                 }
             }
+            if (externalMethod != null) {
+                return new MethodModel(packageName, className, targetMethodCallName, typeList, externalMethod);
+            }
+        }else{
+            //是构造函数
+            ConstructorDeclaration constructorDeclaration = null;
+            List<String> MUTList = new ArrayList<>();
+            MUTList = findFileList(new File("MUTClass/"), MUTList);
+            for (String s : MUTList) {
+                s = s.split("\\\\")[1];
+                String path = packageName + "+" + className + "+" + targetMethodCallName;
+                if (s.contains(path)) {
+                    if (judgeArguments(s, typeList)) {
+                        CompilationUnit cu2 = constructCompilationUnit(null, "MUTClass/" + s);
+                        List<ConstructorDeclaration> constructorDeclarationList = cu2.findAll(ConstructorDeclaration.class);
+                        for (ConstructorDeclaration md : constructorDeclarationList) {
+                            if (md.getNameAsString().equals(targetMethodCallName)) {
+
+                                constructorDeclaration = md;
+                            }
+                        }
+
+                    }
+                }
+            }
+            if (constructorDeclaration != null) {
+                return new MethodModel(packageName, className, targetMethodCallName, typeList, constructorDeclaration);
+            }
         }
-        return externalMethod;
+
+        return null;
     }
 
     public ImportDeclaration getImportDeclartion(List<ImportDeclaration> importDeclarations, String objectType) {
@@ -438,7 +631,8 @@ public class TestFileAnalysis {
         try {
             String[] filenameArray = FILE_PATH.split("/");
             String filename = filenameArray[filenameArray.length - 1].split("\\.")[0];
-            String outputFileName = "Test Class/" + packageName + "+" + filename + "+" + methodName + "+" + typeString + ".txt";
+            String outputFileName = "Test Class/" + packageName + "+" + filename + "+" + methodName + "+" + typeString + ".java";
+            System.out.println(outputFileName);
             BufferedWriter bw = new BufferedWriter(new FileWriter(outputFileName));
             for (String s : writeFileImportList) {
                 bw.write(s);
