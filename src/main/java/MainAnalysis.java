@@ -13,23 +13,23 @@ public class MainAnalysis {
         MainAnalysis mainAnalysis = new MainAnalysis();
         mainAnalysis.findFileList(new File(SRC_PATH), fileNames);
         for (String value : fileNames) {
-            if (value.contains(".java") && value.contains("src\\main")) {
-                value = value.replaceAll("\\\\", "/");
-                filePathList.add(value);
+//            if (value.contains(".java") && value.contains("src\\main")) {
+//                value = value.replaceAll("\\\\", "/");
+//                filePathList.add(value);
 //                System.out.println(value);
-            }
+//            }
             if (value.contains(".java") && value.contains("src\\test")) {
                 value = value.replaceAll("\\\\", "/");
                 testFilePathList.add(value);
-//                System.err.println(value);
+                System.err.println(value);
             }
         }
         for (int j = 0; j < testFilePathList.size(); j++) {
 //            if (j == 9) {
-                TestFileAnalysis testFileAnalysis = new TestFileAnalysis(testFilePathList.get(j));
+            TestFileAnalysis testFileAnalysis = new TestFileAnalysis(testFilePathList.get(j));
 //                System.out.println(testFilePathList.get(j));
-                List<String> originalTestFragmentClassList = testFileAnalysis.getOriginalTestFragment();
-                for (int i = 0; i < originalTestFragmentClassList.size(); i++) {
+            List<String> originalTestFragmentClassList = testFileAnalysis.getOriginalTestFragment();
+            for (int i = 0; i < originalTestFragmentClassList.size(); i++) {
 //                    if(originalTestFragmentClassList.get(i).contains("forOverrideRequest")){
 //                        System.out.println(i);
 //                    }
@@ -37,25 +37,27 @@ public class MainAnalysis {
 //                    if(originalTestFragmentClassList.get(i).contains("shouldRetryTwiceWithAirplaneModeOffAndNoNetworkInfo")){
 //                        System.out.println(j+"+++"+i+"+++");
 //                    }
-                    if(originalTestFragmentClassList.get(i).contains("createwithBitmapcacheHit")){
-                        System.out.println(j+"+++"+i+"+++");
-                    }
-                        testFileAnalysis.dependencyAnalysis(originalTestFragmentClassList.get(i));
+//                    if(originalTestFragmentClassList.get(i).contains("createwithBitmapcacheHit")){
+//                        System.out.println(j+"+++"+i+"+++");
 //                    }
-                }
-//            }
+                testFileAnalysis.dependencyAnalysis(originalTestFragmentClassList.get(i));
+//                    }
+            }
+
         }
-//        for(int j = 0;j<filePathList.size();j++){
-////            if(j == 0){
-//                MUTAnalysis mutAnalysis = new MUTAnalysis(filePathList.get(j));
+//        for (int j = 0; j < filePathList.size(); j++) {
+//            MUTAnalysis mutAnalysis = new MUTAnalysis(filePathList.get(j));
+//            List<String> originalMethodClassList = mutAnalysis.getOriginalMethod();
+//            for (int i = 0; i < originalMethodClassList.size(); i++) {
+//                mutAnalysis.methodExtraction(0, originalMethodClassList.get(i));
+//            }
+//        }
+//        for (int j = 0; j < testFilePathList.size(); j++) {
+//            MUTAnalysis mutAnalysis = new MUTAnalysis(testFilePathList.get(j));
 //                List<String> originalMethodClassList = mutAnalysis.getOriginalMethod();
-//                for(int i = 0 ;i<originalMethodClassList.size();i++){
-////                    if(i==0){
-//                        mutAnalysis.methodExtraction(i,originalMethodClassList.get(i));
-//
-////                    }
-//                }
-////            }
+//                for (int i = 0; i < originalMethodClassList.size(); i++) {
+//                    mutAnalysis.methodExtraction(1, originalMethodClassList.get(i));
+//            }
 //        }
 
 //        File file = new File("Test Fragment/");
@@ -83,7 +85,7 @@ public class MainAnalysis {
             for (String s : files) {// 循环，添加文件名或回调自身
                 File file = new File(dir, s);
                 if (file.isFile()) {// 如果文件
-                    fileNames.add(dir + "\\" + file.getName());// 添加文件全路径名
+                    fileNames.add(dir + File.separator + file.getName());// 添加文件全路径名
                 } else {// 如果是目录
                     findFileList(file, fileNames);// 回调自身继续查询
                 }

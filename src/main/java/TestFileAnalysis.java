@@ -219,7 +219,8 @@ public class TestFileAnalysis {
                             "packagename:" + methodModel.getPackageName() + "\n" +
                                     "classname:" + methodModel.getClassName() + "\n" +
                                     "methodname:" + methodModel.getMethodName() + "\n" +
-                                    "parametertype:" + methodModel.getParameterTypeList();
+                                    "parametertype:" + methodModel.getParameterTypeList() + "\n" +
+                                    "fromTest:" + methodModel.isFromTest();
                     jc.setContent(javaDocCommentString);
                     method.setJavadocComment(jc);
                     methodDependency.add(method.toString());
@@ -278,7 +279,8 @@ public class TestFileAnalysis {
                                         "packagename:" + packageList.get(0).getNameAsString() + "\n" +
                                                 "classname:" + FILE_PATH.split("/")[FILE_PATH.split("/").length - 1].split("\\.")[0] + "\n" +
                                                 "methodname:" + oce.getTypeAsString() + "\n" +
-                                                "parametertype:" + parameterTypeList;
+                                                "parametertype:" + parameterTypeList + "\n" +
+                                                "fromTest:" + "true";
                                 jc.setContent(javaDocCommentString);
                                 cd.setJavadocComment(jc);
                             }
@@ -289,12 +291,12 @@ public class TestFileAnalysis {
 
                 }
 
-            }else{
+            } else {
                 //也可能是其他类的构造函数
                 String packageName = packageList.get(0).getNameAsString();
                 List<Expression> arguments = oce.getArguments();
                 List<String> argumentsType = getVariableTypeList(arguments, variableDeclarators, externalFieldDeclarationList);
-                MethodModel methodModel = getExternalMethod(objectClass,packageName,objectClass,argumentsType);
+                MethodModel methodModel = getExternalMethod(objectClass, packageName, objectClass, argumentsType);
 
                 if (methodModel != null) {
                     System.out.println(methodModel.toString());
@@ -306,7 +308,8 @@ public class TestFileAnalysis {
                             "packagename:" + methodModel.getPackageName() + "\n" +
                                     "classname:" + methodModel.getClassName() + "\n" +
                                     "methodname:" + methodModel.getMethodName() + "\n" +
-                                    "parametertype:" + methodModel.getParameterTypeList();
+                                    "parametertype:" + methodModel.getParameterTypeList() + "\n" +
+                                    "fromTest:" + methodModel.isFromTest();
                     jc.setContent(javaDocCommentString);
                     method.setJavadocComment(jc);
                     methodDependency.add(method.toString());
@@ -408,10 +411,10 @@ public class TestFileAnalysis {
                         if (id != null) {//保证提取的是类
                             String packageName = id.getNameAsString().split("." + className)[0];
                             targetMethodModel = getExternalMethod(methodName, packageName, className, newTypeList);
-                        }else{
+                        } else {
                             //可能是项目内的
                             String packageName = packageList.get(0).getNameAsString();
-                            targetMethodModel = getExternalMethod(methodName,packageName,className,newTypeList);
+                            targetMethodModel = getExternalMethod(methodName, packageName, className, newTypeList);
                         }
                     }
                 }
@@ -426,7 +429,7 @@ public class TestFileAnalysis {
                 List<String> newTypeList = getVariableTypeList(arguments, variableDeclarators, externalFieldDeclarationList);
                 if (matchMethod(methodName, newTypeList, md)) {
                     //说明是同一方法
-                    targetMethodModel = new MethodModel(packageName, className, methodName, newTypeList, md);
+                    targetMethodModel = new MethodModel(packageName, className, methodName, newTypeList, md, true);
                 }
             }
             if (targetMethodModel == null) {
@@ -490,16 +493,23 @@ public class TestFileAnalysis {
 
     public MethodModel getExternalMethod(String targetMethodCallName, String packageName, String className, List<String> typeList) throws FileNotFoundException {
         //targetMethodCallName就是方法名
-        if(!targetMethodCallName.equals(className)){
+        if (!targetMethodCallName.equals(className)) {
             //不是构造函数
             MethodDeclaration externalMethod = null;
             List<String> MUTList = new ArrayList<>();
             MUTList = findFileList(new File("MUTClass/"), MUTList);
+            boolean fromTest = false;
             for (String s : MUTList) {
                 s = s.split("\\\\")[1];
-                String path = packageName + "+" + className + "+" + targetMethodCallName;
+                String path = "+" + packageName + "+" + className + "+" + targetMethodCallName;
                 if (s.contains(path)) {
                     if (judgeArguments(s, typeList)) {
+                        String testOrProd = s.split("\\+")[0];
+                        if (testOrProd.equals("test")) {
+                            fromTest = true;
+                        } else if (testOrProd.equals("prod")) {
+                            fromTest = false;
+                        }
                         CompilationUnit cu2 = constructCompilationUnit(null, "MUTClass/" + s);
                         List<MethodDeclaration> methodDeclarationList = cu2.findAll(MethodDeclaration.class);
                         for (MethodDeclaration md : methodDeclarationList) {
@@ -512,18 +522,25 @@ public class TestFileAnalysis {
                 }
             }
             if (externalMethod != null) {
-                return new MethodModel(packageName, className, targetMethodCallName, typeList, externalMethod);
+                return new MethodModel(packageName, className, targetMethodCallName, typeList, externalMethod, fromTest);
             }
-        }else{
+        } else {
             //是构造函数
             ConstructorDeclaration constructorDeclaration = null;
             List<String> MUTList = new ArrayList<>();
             MUTList = findFileList(new File("MUTClass/"), MUTList);
+            boolean fromTest = false;
             for (String s : MUTList) {
                 s = s.split("\\\\")[1];
-                String path = packageName + "+" + className + "+" + targetMethodCallName;
+                String path = "+" + packageName + "+" + className + "+" + targetMethodCallName;
                 if (s.contains(path)) {
                     if (judgeArguments(s, typeList)) {
+                        String testOrProd = s.split("\\+")[0];
+                        if (testOrProd.equals("test")) {
+                            fromTest = true;
+                        } else if (testOrProd.equals("prod")) {
+                            fromTest = false;
+                        }
                         CompilationUnit cu2 = constructCompilationUnit(null, "MUTClass/" + s);
                         List<ConstructorDeclaration> constructorDeclarationList = cu2.findAll(ConstructorDeclaration.class);
                         for (ConstructorDeclaration md : constructorDeclarationList) {
@@ -537,7 +554,7 @@ public class TestFileAnalysis {
                 }
             }
             if (constructorDeclaration != null) {
-                return new MethodModel(packageName, className, targetMethodCallName, typeList, constructorDeclaration);
+                return new MethodModel(packageName, className, targetMethodCallName, typeList, constructorDeclaration, fromTest);
             }
         }
 
@@ -631,7 +648,7 @@ public class TestFileAnalysis {
         try {
             String[] filenameArray = FILE_PATH.split("/");
             String filename = filenameArray[filenameArray.length - 1].split("\\.")[0];
-            String outputFileName = "Test Class/" + packageName + "+" + filename + "+" + methodName + "+" + typeString + ".java";
+            String outputFileName = "Test Class/" + packageName + "+" + filename + "+" + methodName + "+" + typeString + ".txt";
             System.out.println(outputFileName);
             BufferedWriter bw = new BufferedWriter(new FileWriter(outputFileName));
             for (String s : writeFileImportList) {

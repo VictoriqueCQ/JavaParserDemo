@@ -39,7 +39,7 @@ public class testTargetAnalysis {
             for (String s : files) {// 循环，添加文件名或回调自身
                 File file = new File(dir, s);
                 if (file.isFile()) {// 如果文件
-                    fileNames.add(dir + "\\" + file.getName());// 添加文件全路径名
+                    fileNames.add(dir + File.separator + file.getName());// 添加文件全路径名
                 } else {// 如果是目录
                     findFileList(file, fileNames);// 回调自身继续查询
                 }
@@ -124,14 +124,7 @@ public class testTargetAnalysis {
                             List<String> typeList = getVariableTypeList(param, variableDeclaratorList);
                             if (matchMethod(name, typeList, md)) {
                                 methodCallLine = methodCallExpr.getRange().get().begin.line;
-                                String target = "";
-                                String[] comment = md.getJavadoc().get().toText().split("\r\n");
-                                for (int i = 0; i < comment.length; i++) {
-                                    if (comment[i].contains("packagename") || comment[i].contains("classname") || comment[i].contains("methodname") || comment[i].contains("parametertype")) {
-                                        target += comment[i].split(":")[1] + "+";
-                                    }
-                                }
-                                target = target.substring(0, target.length() - 1);
+                                String target = fromMethodCommentToTarget(md);
                                 if (!targetMap.containsKey(target)) {
 //                                    System.out.println(mce+"+" + methodCallLine);
 //                                    if (i > methodCallLine) {
@@ -261,6 +254,38 @@ public class testTargetAnalysis {
         return targetMap;
     }
 
+    public String fromMethodCommentToTarget(MethodDeclaration md) {
+        String target = "";
+//        System.out.println(md.getJavadoc().toString());
+
+        String[] comment = md.getJavadoc().get().toText().split(System.lineSeparator());
+        for (int i = 0; i < comment.length; i++) {
+            if (comment[i].contains("packagename") || comment[i].contains("classname") || comment[i].contains("methodname") || comment[i].contains("parametertype") || comment[i].contains("fromTest")) {
+                target += comment[i].split(":")[1] + "+";
+            }
+        }
+        if (target.split("\\+")[target.split("\\+").length - 1].equals("false")) {
+            return target.substring(0, target.length() - 1);
+        }
+        return null;
+    }
+
+    public String fromConstructorCommentToTarget(ConstructorDeclaration cd) {
+        String target = "";
+//        System.out.println(cd.getJavadoc().toString());
+
+        String[] comment = cd.getJavadoc().get().toText().split(System.lineSeparator());
+        for (int i = 0; i < comment.length; i++) {
+            if (comment[i].contains("packagename") || comment[i].contains("classname") || comment[i].contains("methodname") || comment[i].contains("parametertype") || comment[i].contains("fromTest")) {
+                target += comment[i].split(":")[1] + "+";
+            }
+        }
+        if (target.split("\\+")[target.split("\\+").length - 1].equals("false")) {
+            return target.substring(0, target.length() - 1);
+        }
+        return null;
+    }
+
     public Map<String, Integer> getVariableCallMethod(List<MethodDeclaration> methodDeclarationList, MethodCallExpr methodCall, List<VariableDeclarator> variableDeclaratorList, int firstAssertLine) {
         Map<String, Integer> targetMap = new HashMap<>();
 
@@ -270,14 +295,7 @@ public class testTargetAnalysis {
             List<String> typeList = getVariableTypeList(param, variableDeclaratorList);
             if (matchMethod(name, typeList, md)) {
                 int variableLastCallLine = methodCall.getRange().get().begin.line;
-                String target = "";
-                String[] comment = md.getJavadoc().get().toText().split("\r\n");
-                for (int i = 0; i < comment.length; i++) {
-                    if (comment[i].contains("packagename") || comment[i].contains("classname") || comment[i].contains("methodname") || comment[i].contains("parametertype")) {
-                        target += comment[i].split(":")[1] + "+";
-                    }
-                }
-                target = target.substring(0, target.length() - 1);
+                String target = fromMethodCommentToTarget(md);
                 if (!targetMap.containsKey(target)) {
                     targetMap.put(target, variableLastCallLine);
 
@@ -297,14 +315,7 @@ public class testTargetAnalysis {
             List<String> typeList = getVariableTypeList(param, variableDeclaratorList);
             if (matchMethod(name, typeList, md)) {
                 int variableInitializeLine = methodCallExpr.getRange().get().begin.line;
-                String target = "";
-                String[] comment = md.getJavadoc().get().toText().split("\r\n");
-                for (int i = 0; i < comment.length; i++) {
-                    if (comment[i].contains("packagename") || comment[i].contains("classname") || comment[i].contains("methodname") || comment[i].contains("parametertype")) {
-                        target += comment[i].split(":")[1] + "+";
-                    }
-                }
-                target = target.substring(0, target.length() - 1);
+                String target = fromMethodCommentToTarget(md);
                 if (!targetMap.containsKey(target)) {
                     targetMap.put(target, variableInitializeLine);
                 }
@@ -340,14 +351,7 @@ public class testTargetAnalysis {
                     }
                     if (flag) {
                         int variableInitializeLine = objectCreationExpr.getRange().get().begin.line;
-                        String target = "";
-                        String[] comment = cd.getJavadoc().get().toText().split("\r\n");
-                        for (int i = 0; i < comment.length; i++) {
-                            if (comment[i].contains("packagename") || comment[i].contains("classname") || comment[i].contains("methodname") || comment[i].contains("parametertype")) {
-                                target += comment[i].split(":")[1] + "+";
-                            }
-                        }
-                        target = target.substring(0, target.length() - 1);
+                        String target = fromConstructorCommentToTarget(cd);
                         if (!targetMap.containsKey(target)) {
                             targetMap.put(target, variableInitializeLine);
                         }
@@ -463,20 +467,24 @@ public class testTargetAnalysis {
         int count = 0;
         for (int i = 0; i < fileNames.size(); i++) {
 //            if (i == 217) {
-                Map<String, Integer> result = tta.getTarget(fileNames.get(i).replaceAll("\\.txt", "\\.java"));
-//                System.out.println(i);
-//                System.out.println(fileNames.get(i));
-            if(!result.isEmpty()){
-                count+=1;
+            Map<String, Integer> result = tta.getTarget(fileNames.get(i));
+            System.out.println(i);
+            System.out.println(fileNames.get(i));
+            if (!result.isEmpty()) {
+                count += 1;
+//            if (fileNames.get(i).contains("rotation90WithPivotSizing")) {
+//                System.out.println("+++" + i + "+++" + fileNames.get(i));
+//            }
                 for (Map.Entry<String, Integer> entry : result.entrySet()) {
                     System.out.println(entry.getKey() + "line:" + entry.getValue());
                 }
-                System.out.println("===================================");
-            }
 
 //            }
-        }
-        System.out.println("count:"+count);
 
+//            }
+            }
+            System.out.println("count:" + count);
+            System.out.println("===================================");
+        }
     }
 }

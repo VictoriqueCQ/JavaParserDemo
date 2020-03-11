@@ -22,19 +22,19 @@ import java.util.*;
   */
 public class TestGranularityAnalysis {
 
-    static String ROOT_PATH = "D:/picasso/src/main/java/";//"src\\main\\java"
-    static List<FieldDeclaration> globelVariableList = new ArrayList<>();
-    static MethodDeclaration beforeMethod = null;
-    static MethodDeclaration afterMethod = null;
-    static List<MethodDeclaration> normalMethodList = new ArrayList<>();
-    static List<String> normalMethodNameList = new ArrayList<>();
+    String ROOT_PATH = "/Users/sunweisong/Desktop/picasso/src/main/java";//"src\\main\\java"
+    List<FieldDeclaration> globelVariableList = new ArrayList<>();
+    MethodDeclaration beforeMethod = null;
+    MethodDeclaration afterMethod = null;
+    List<MethodDeclaration> normalMethodList = new ArrayList<>();
+    List<String> normalMethodNameList = new ArrayList<>();
 
     /**
       * 测试粒度还原测试入口
       * @date 2020/3/9 11:26 PM
       * @author sunweisong
       */
-    public static void main(String[] args) {
+    public void test(String[] args) {
         String filePath = "/Users/sunweisong/Desktop/TestClass/com.squareup.picasso3+BitmapHunterTest_+cancelSingleRequest+().txt";
         List<String> testTargetList = new ArrayList<>();
         testTargetList.add("com.squareup.picasso3+BitmapHunter+isCancelled+()");
@@ -66,7 +66,7 @@ public class TestGranularityAnalysis {
       * @date 2020/3/9 11:25 PM
       * @author sunweisong
       */
-    public static CompilationUnit constructCompilationUnit(String code, String filePath)
+    public CompilationUnit constructCompilationUnit(String code, String filePath)
             throws FileNotFoundException {
         CombinedTypeSolver combinedTypeSolver = new CombinedTypeSolver();
         TypeSolver javaParserTypeSolver = new JavaParserTypeSolver(new File(ROOT_PATH));
@@ -88,7 +88,7 @@ public class TestGranularityAnalysis {
       * @date 2020/3/9 11:24 PM
       * @author sunweisong
       */
-    public static List<ClassOrInterfaceDeclaration> reduceTestGranularity(CompilationUnit cu
+    public List<ClassOrInterfaceDeclaration> reduceTestGranularity(CompilationUnit cu
             , List<String> testTargetList) throws IOException {
         //获取类变量列表（包含可能的内部类的变量）
         List<FieldDeclaration> fieldDeclarationList = cu.findAll(FieldDeclaration.class);
@@ -163,7 +163,7 @@ public class TestGranularityAnalysis {
       * @date 2020/3/9 4:35 PM
       * @author sunweisong
       */
-    private static List<ClassOrInterfaceDeclaration> produceTestClassForTestFragment(List<StatementModel> statementModelList) {
+    private List<ClassOrInterfaceDeclaration> produceTestClassForTestFragment(List<StatementModel> statementModelList) {
         List<ClassOrInterfaceDeclaration> myClassList = new ArrayList<>();
         for (int i = 0; i < statementModelList.size(); i++ ) {
             StatementModel statementModel = statementModelList.get(i);
@@ -235,7 +235,7 @@ public class TestGranularityAnalysis {
       * @date 2020/3/9 11:23 PM
       * @author sunweisong
       */
-    private static ClassOrInterfaceDeclaration assembleClassOrInterfaceDeclaration(StatementModel statementModel
+    private ClassOrInterfaceDeclaration assembleClassOrInterfaceDeclaration(StatementModel statementModel
             , List<StatementModel> relatedStatementModelList) {
         //初始化ClassOrInterfaceDeclaration,用于构造新的测试片段类
         ClassOrInterfaceDeclaration myClass = new ClassOrInterfaceDeclaration();
@@ -304,7 +304,7 @@ public class TestGranularityAnalysis {
       * @date 2020/3/9 9:02 PM
       * @author sunweisong
       */
-    private static List<StatementModel> analyzeAllStatementsInTestMethod(MethodDeclaration testMethodDeclaration) {
+    private List<StatementModel> analyzeAllStatementsInTestMethod(MethodDeclaration testMethodDeclaration) {
         List<StatementModel> statementModelList = new ArrayList<>();
         NodeList<Statement> statements = testMethodDeclaration.getBody().get().getStatements();
         for (int i = 0; i < statements.size(); i++) {
@@ -349,7 +349,7 @@ public class TestGranularityAnalysis {
       * @date 2020/3/9 9:35 PM
       * @author sunweisong
       */
-    private static void analyzeSuspiciousTestTarget(StatementModel statementModel) {
+    private void analyzeSuspiciousTestTarget(StatementModel statementModel) {
         MethodCallExpr mce = statementModel.getMethodCallExpr();
         List<Expression> arguments = mce.getArguments();
         Expression actualExpression;
@@ -373,7 +373,7 @@ public class TestGranularityAnalysis {
       * @date 2020/3/9 11:02 PM
       * @author sunweisong
       */
-    private static String analyzeSuspiciousTestTargetInActual(Expression actualExpression) {
+    private String analyzeSuspiciousTestTargetInActual(Expression actualExpression) {
         String suspiciousTestTarget = null;
         if (actualExpression.isMethodCallExpr()) {
             String className = "";

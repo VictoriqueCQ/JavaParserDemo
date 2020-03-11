@@ -75,12 +75,20 @@ public class MUTAnalysis {
         //获取方法并转成类
         cu.findAll(MethodDeclaration.class).forEach(md -> originalMethodClassList.add("class TestFragment{\n" + md.toString() + "}"));
         //获取所有构造方法并转成类
-        cu.findAll(ConstructorDeclaration.class).forEach(cd->originalMethodClassList.add("class "+cd.getNameAsString()+"{\n" + cd.toString() + "}"));
+        cu.findAll(ConstructorDeclaration.class).forEach(cd -> originalMethodClassList.add("class " + cd.getNameAsString() + "{\n" + cd.toString() + "}"));
         return originalMethodClassList;
     }
 
 
     public void methodExtraction(int index, String methodClass) throws FileNotFoundException {
+        String testOrProduct = "";
+        if (index == 0) {
+            //生产代码
+            testOrProduct = "prod";
+        } else if (index == 1) {
+            //测试代码
+            testOrProduct = "test";
+        }
         CompilationUnit cu2 = constructCompilationUnit(methodClass, null);
         List<VariableTuple> variableList = new ArrayList<>();
         for (FieldDeclaration fd : globelVariableList) {
@@ -126,7 +134,7 @@ public class MUTAnalysis {
         //初始化ClassOrInterfaceDeclaration,用于构造新的测试片段类
         ClassOrInterfaceDeclaration myClass = new ClassOrInterfaceDeclaration();
         //获取MethodDeclanation，用于后续添加语句
-        if(cu2.findAll(MethodDeclaration.class).size()!=0){
+        if (cu2.findAll(MethodDeclaration.class).size() != 0) {
             MethodDeclaration myMethod = cu2.findAll(MethodDeclaration.class).get(0);
             myClass.setName("MUT");
             Set<String> importTypeSet = new HashSet<>();
@@ -237,11 +245,12 @@ public class MUTAnalysis {
 //        System.out.println(methodName);
 //        System.out.println(myClass);
             try {
+
                 String[] filenameArray = FILE_PATH.split("/");
                 String filename = filenameArray[filenameArray.length - 1].split("\\.")[0];
-                String outputFileName0 = "MUTClass/" +packageName +"+"+ filename +"+"+ methodName +"+"+ typeString + ".txt";
-                String outputFileName = packageName + "+" + filename + "+" + methodName + "+" + typeString;
-                String output = "MUT/" + MD5Util.getMD5(outputFileName) + ".txt";
+                String outputFileName0 = "MUTClass/" + testOrProduct + "+" + packageName + "+" + filename + "+" + methodName + "+" + typeString + ".txt";
+//                String outputFileName = packageName + "+" + filename + "+" + methodName + "+" + typeString;
+//                String output = "MUT/" + MD5Util.getMD5(outputFileName) + ".txt";
 //            System.out.println(outputFileName+": "+output);
 //            System.out.println(parameters);
                 BufferedWriter bw = new BufferedWriter(new FileWriter(outputFileName0));
@@ -258,7 +267,7 @@ public class MUTAnalysis {
             } catch (Exception e) {
                 e.printStackTrace();
             }
-        }else{
+        } else {
             ConstructorDeclaration myMethod = cu2.findAll(ConstructorDeclaration.class).get(0);
             myClass.setName("MUT");
             Set<String> importTypeSet = new HashSet<>();
@@ -371,11 +380,12 @@ public class MUTAnalysis {
             try {
                 String[] filenameArray = FILE_PATH.split("/");
                 String filename = filenameArray[filenameArray.length - 1].split("\\.")[0];
-                String outputFileName0 = "MUTClass/" +packageName +"+"+ filename +"+"+ methodName +"+"+ typeString + ".txt";
-                String outputFileName = packageName + "+" + filename + "+" + methodName + "+" + typeString;
-                String output = "MUT/" + MD5Util.getMD5(outputFileName) + ".txt";
+                String outputFileName0 = "MUTClass/" + testOrProduct + "+" + packageName + "+" + filename + "+" + methodName + "+" + typeString + ".txt";
+//                String outputFileName = packageName + "+" + filename + "+" + methodName + "+" + typeString;
+//                String output = "MUT/" + MD5Util.getMD5(outputFileName) + ".txt";
 //            System.out.println(outputFileName+": "+output);
 //            System.out.println(parameters);
+//                System.out.println(outputFileName0);
                 BufferedWriter bw = new BufferedWriter(new FileWriter(outputFileName0));
 //            BufferedWriter bw = new BufferedWriter(new FileWriter(output));
 //            System.err.println(writeFileImportList.size());

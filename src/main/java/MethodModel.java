@@ -12,8 +12,9 @@ public class MethodModel {
     private String parameterTypeList;
     private MethodDeclaration methodBody;
     private ConstructorDeclaration constructorBody;
+    private boolean fromTest;//如果是true表示是test，如果是false表示是product
 
-    public MethodModel(String packageName, String className, String methodName, List<String> typeList, MethodDeclaration methodBody) {
+    public MethodModel(String packageName, String className, String methodName, List<String> typeList, MethodDeclaration methodBody,boolean fromTest) {
         this.packageName = packageName;
         this.className = className;
         this.methodName = methodName;
@@ -33,9 +34,10 @@ public class MethodModel {
             s.append(")");
             this.parameterTypeList = s.toString();
         }
+        this.fromTest = fromTest;
     }
 
-    public MethodModel(String packageName, String className, String methodName, List<String> typeList, ConstructorDeclaration methodBody) {
+    public MethodModel(String packageName, String className, String methodName, List<String> typeList, ConstructorDeclaration methodBody,boolean fromTest) {
         this.packageName = packageName;
         this.className = className;
         this.methodName = methodName;
@@ -55,6 +57,7 @@ public class MethodModel {
             s.append(")");
             this.parameterTypeList = s.toString();
         }
+        this.fromTest = fromTest;
     }
 
     public String getPackageName() {
@@ -105,6 +108,14 @@ public class MethodModel {
         this.constructorBody = constructorBody;
     }
 
+    public boolean isFromTest() {
+        return fromTest;
+    }
+
+    public void setFromTest(boolean fromTest) {
+        this.fromTest = fromTest;
+    }
+
     @Override
     public String toString() {
         return "MethodModel{" +
@@ -114,6 +125,7 @@ public class MethodModel {
                 ", parameterTypeList='" + parameterTypeList + '\'' +
                 ", methodBody=" + methodBody +
                 ", constructorBody=" + constructorBody +
+                ", fromTest=" + fromTest +
                 '}';
     }
 }
