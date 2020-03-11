@@ -19,14 +19,18 @@ public class Main {
         for (int i = 0; i < filenames.size(); i++) {
 //            if (i == 1 || i == 2) {
             try{
-                Map<String, Integer> target = tta.getTarget(filenames.get(i));
-                List<String> targetList = new ArrayList<>(target.keySet());
+                Map<String, Integer> result = tta.getTarget(filenames.get(i));
+                System.out.println(i);
+                System.out.println(result);
+                List<String> targetList = new ArrayList<>(result.keySet());
                 if (targetList.size() == 0) {
                     System.err.println("no test target!!!");
                     continue;
                 }
 
                 TestGranularityAnalysis tga = new TestGranularityAnalysis();
+
+//                TestGranularityAnalysis tga = new TestGranularityAnalysis();
                 CompilationUnit cu = tga.constructCompilationUnit(null, filenames.get(i));
                 List<ClassOrInterfaceDeclaration> myClassList = tga.reduceTestGranularity(cu, targetList);
 

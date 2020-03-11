@@ -265,7 +265,7 @@ public class testTargetAnalysis {
             }
         }
         if (target.split("\\+")[target.split("\\+").length - 1].equals("false")) {
-            return target.substring(0, target.length() - 1);
+            return target.substring(0, target.length() - 7);
         }
         return null;
     }
@@ -281,7 +281,7 @@ public class testTargetAnalysis {
             }
         }
         if (target.split("\\+")[target.split("\\+").length - 1].equals("false")) {
-            return target.substring(0, target.length() - 1);
+            return target.substring(0, target.length() - 7);
         }
         return null;
     }
