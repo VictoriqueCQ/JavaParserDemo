@@ -13,6 +13,7 @@ public class Main {
         Main main = new Main();
         main.findFileList(new File("Test Class"), filenames);
 //        filenames.forEach(System.out::println);
+        
         testTargetAnalysis tta = new testTargetAnalysis();
         for (int i = 0; i < filenames.size(); i++) {
 //            if (i > 2) {
