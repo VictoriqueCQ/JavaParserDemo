@@ -1,3 +1,5 @@
+package Analyse;
+
 import com.github.javaparser.ast.Node;
 
 public class VariableTuple<T extends Node> {
@@ -20,5 +22,37 @@ public class VariableTuple<T extends Node> {
                         "\nname: " + name +
                         "\n================================================="
         );
+    }
+
+    public boolean isGlobal() {
+        return isGlobal;
+    }
+
+    public void setGlobal(boolean global) {
+        isGlobal = global;
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public void setType(String type) {
+        this.type = type;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public T getOriginal() {
+        return original;
+    }
+
+    public void setOriginal(T original) {
+        this.original = original;
     }
 }

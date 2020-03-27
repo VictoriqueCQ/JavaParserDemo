@@ -1,7 +1,12 @@
+package Analyse;
+
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
+import Utils.Utils;
 
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -18,11 +23,13 @@ public class Main {
         int numberOfTestCase = 0;
         for (int i = 0; i < filenames.size(); i++) {
 //            if (i == 1 || i == 2) {
-            try{
+
+            try {
                 Map<String, Integer> result = tta.getTarget(filenames.get(i));
-                System.out.println(i);
-                System.out.println(result);
+//                System.out.println(i);
+//                System.out.println(result);
                 List<String> targetList = new ArrayList<>(result.keySet());
+//                System.out.println(targetList.toString());
                 if (targetList.size() == 0) {
                     System.err.println("no test target!!!");
                     continue;
@@ -30,20 +37,33 @@ public class Main {
 
                 TestGranularityAnalysis tga = new TestGranularityAnalysis();
 
-//                TestGranularityAnalysis tga = new TestGranularityAnalysis();
-                CompilationUnit cu = tga.constructCompilationUnit(null, filenames.get(i));
-                List<ClassOrInterfaceDeclaration> myClassList = tga.reduceTestGranularity(cu, targetList);
+                if (targetList.size() > 0) {
+                    CompilationUnit cu = tga.constructCompilationUnit(null, filenames.get(i));
+                    List<ClassOrInterfaceDeclaration> myClassList = tga.reduceTestGranularity(cu, targetList);
+                    if (myClassList != null) {
+//                    System.out.println(myClassList.size()+"+"+targetList.size());
+                        CompilationUnit cu1 = Utils.constructCompilationUnit(null, filenames.get(i), "D:/picasso/src");
+                        numberOfTestCase += myClassList.size();
+////                    System.out.println("---------------------------------------");
+                        String name = filenames.get(i).split("\\\\")[1];
+                        String filename = "NewTestClass" + File.separator + name;
+                        BufferedWriter bw = new BufferedWriter(new FileWriter(filename));
+                        bw.write(cu1.toString());
+                        bw.write("===");
+//                    System.err.println("+++"+filename);
+                        for (ClassOrInterfaceDeclaration myClass : myClassList) {
+                            System.out.println(myClass.toString());
+                            System.out.println("===");
+                            bw.write("\n---\n");
+                            bw.write(myClass.toString());
 
-                if (myClassList != null) {
-                    numberOfTestCase += myClassList.size();
-                    System.out.println("---------------------------------------");
-                    for (ClassOrInterfaceDeclaration myClass : myClassList) {
-                        System.out.println(myClass.toString());
-                        System.out.println("---------------------------------------");
+                        }
+                        bw.close();
                     }
                 }
 
-            }catch (Exception e){
+
+            } catch (Exception e) {
                 e.printStackTrace();
             }
         }

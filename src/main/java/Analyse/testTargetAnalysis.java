@@ -1,3 +1,5 @@
+package Analyse;
+
 import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.body.*;
@@ -256,8 +258,6 @@ public class testTargetAnalysis {
 
     public String fromMethodCommentToTarget(MethodDeclaration md) {
         String target = "";
-//        System.out.println(md.getJavadoc().toString());
-
         String[] comment = md.getJavadoc().get().toText().split(System.lineSeparator());
         for (int i = 0; i < comment.length; i++) {
             if (comment[i].contains("packagename") || comment[i].contains("classname") || comment[i].contains("methodname") || comment[i].contains("parametertype") || comment[i].contains("fromTest")) {

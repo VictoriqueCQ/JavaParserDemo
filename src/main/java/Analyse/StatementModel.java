@@ -1,3 +1,5 @@
+package Analyse;
+
 import com.github.javaparser.ast.expr.MethodCallExpr;
 
 import java.util.List;
@@ -110,7 +112,7 @@ public class StatementModel {
 
     @Override
     public String toString() {
-        return "StatementModel{" +
+        return "main.java.Analyse.StatementModel{" +
                 "line=" + line +
                 ", content='" + content + '\'' +
                 ", declareVariableSet=" + declareVariableSet +

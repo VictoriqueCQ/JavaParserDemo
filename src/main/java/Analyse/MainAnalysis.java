@@ -1,3 +1,5 @@
+package Analyse;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -13,24 +15,25 @@ public class MainAnalysis {
         MainAnalysis mainAnalysis = new MainAnalysis();
         mainAnalysis.findFileList(new File(SRC_PATH), fileNames);
         for (String value : fileNames) {
-//            if (value.contains(".java") && value.contains("src\\main")) {
-//                value = value.replaceAll("\\\\", "/");
-//                filePathList.add(value);
+            if (value.contains(".java") && value.contains("src\\main")) {
+                value = value.replaceAll("\\\\", "/");
+                filePathList.add(value);
 //                System.out.println(value);
-//            }
+            }
             if (value.contains(".java") && value.contains("src\\test")) {
                 value = value.replaceAll("\\\\", "/");
                 testFilePathList.add(value);
-                System.err.println(value);
+//                System.err.println(value);
             }
         }
         for (int j = 0; j < testFilePathList.size(); j++) {
 //            if (j == 9) {
             TestFileAnalysis testFileAnalysis = new TestFileAnalysis(testFilePathList.get(j));
 //                System.out.println(testFilePathList.get(j));
+//            if (testFilePathList.get(j).contains("UtilsTest.java") || testFilePathList.get(j).contains("DispatcherTest.java")) {
             List<String> originalTestFragmentClassList = testFileAnalysis.getOriginalTestFragment();
             for (int i = 0; i < originalTestFragmentClassList.size(); i++) {
-//                    if(originalTestFragmentClassList.get(i).contains("forOverrideRequest")){
+//                if (originalTestFragmentClassList.get(i).contains("getResourceByTypeAndName")) {
 //                        System.out.println(i);
 //                    }
 //                    if (i == 2) {
@@ -40,23 +43,24 @@ public class MainAnalysis {
 //                    if(originalTestFragmentClassList.get(i).contains("createwithBitmapcacheHit")){
 //                        System.out.println(j+"+++"+i+"+++");
 //                    }
-                testFileAnalysis.dependencyAnalysis(originalTestFragmentClassList.get(i));
-//                    }
+                    testFileAnalysis.dependencyAnalysis(originalTestFragmentClassList.get(i));
+//                }
             }
+//            }
 
         }
 //        for (int j = 0; j < filePathList.size(); j++) {
-//            MUTAnalysis mutAnalysis = new MUTAnalysis(filePathList.get(j));
-//            List<String> originalMethodClassList = mutAnalysis.getOriginalMethod();
+//            MethodCollector methodCollector = new MethodCollector(filePathList.get(j));
+//            List<String> originalMethodClassList = methodCollector.getOriginalMethod();
 //            for (int i = 0; i < originalMethodClassList.size(); i++) {
-//                mutAnalysis.methodExtraction(0, originalMethodClassList.get(i));
+//                methodCollector.methodExtraction(0, originalMethodClassList.get(i));
 //            }
 //        }
 //        for (int j = 0; j < testFilePathList.size(); j++) {
-//            MUTAnalysis mutAnalysis = new MUTAnalysis(testFilePathList.get(j));
-//                List<String> originalMethodClassList = mutAnalysis.getOriginalMethod();
-//                for (int i = 0; i < originalMethodClassList.size(); i++) {
-//                    mutAnalysis.methodExtraction(1, originalMethodClassList.get(i));
+//            MethodCollector methodCollector = new MethodCollector(testFilePathList.get(j));
+//            List<String> originalMethodClassList = methodCollector.getOriginalMethod();
+//            for (int i = 0; i < originalMethodClassList.size(); i++) {
+//                methodCollector.methodExtraction(1, originalMethodClassList.get(i));
 //            }
 //        }
 

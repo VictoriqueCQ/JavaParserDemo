@@ -1,3 +1,5 @@
+package Analyse;
+
 import com.github.javaparser.ast.body.ConstructorDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.body.Parameter;
@@ -14,12 +16,12 @@ public class MethodModel {
     private ConstructorDeclaration constructorBody;
     private boolean fromTest;//如果是true表示是test，如果是false表示是product
 
-    public MethodModel(String packageName, String className, String methodName, List<String> typeList, MethodDeclaration methodBody,boolean fromTest) {
+    public MethodModel(String packageName, String className, String methodName, List<String> typeList, MethodDeclaration methodBody, boolean fromTest) {
         this.packageName = packageName;
         this.className = className;
         this.methodName = methodName;
         this.methodBody = methodBody;
-        if (typeList.size() == 0) {
+        if (methodBody.getParameters().size() == 0) {
             this.parameterTypeList = "()";
         } else {
             List<Parameter> parameterList = methodBody.getParameters();
@@ -37,7 +39,7 @@ public class MethodModel {
         this.fromTest = fromTest;
     }
 
-    public MethodModel(String packageName, String className, String methodName, List<String> typeList, ConstructorDeclaration methodBody,boolean fromTest) {
+    public MethodModel(String packageName, String className, String methodName, List<String> typeList, ConstructorDeclaration methodBody, boolean fromTest) {
         this.packageName = packageName;
         this.className = className;
         this.methodName = methodName;
@@ -118,7 +120,7 @@ public class MethodModel {
 
     @Override
     public String toString() {
-        return "MethodModel{" +
+        return "main.java.Analyse.MethodModel{" +
                 "packageName='" + packageName + '\'' +
                 ", className='" + className + '\'' +
                 ", methodName='" + methodName + '\'' +

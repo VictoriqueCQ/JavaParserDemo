@@ -39,10 +39,17 @@ public class experiment {
 //            md.setComment(c);
 //        }
         Comment c = md.getJavadocComment().get();
-        String s = c.getContent()+"\n"+"packageName:pn\nclassName:cn\nmethodName:mn";
-        javadocComment.setContent(s);
+        String ss = md.hasJavaDocComment() ? md.getJavadocComment().get().getContent() + "\n" : "";
+//        String s = c.getContent()+"\n"+"packageName:pn\nclassName:cn\nmethodName:mn";
+        ss += "packageName:pn\nclassName:cn\nmethodName:mn";
+        javadocComment.setContent(ss);
         md.setJavadocComment(javadocComment);
         System.out.println(md);
+//        System.out.println(md.getSignature());
+//        System.out.println(md.getParentNode().toString());
+
+//        MethodDeclaration md1 = cu.findAll(MethodDeclaration.class).get(1);
+//        System.out.println(md1.getParentNode().get().findAll(ClassOrInterfaceDeclaration.class).get(0).getNameAsString());
 //        System.out.println(myClass.toString());
     }
 

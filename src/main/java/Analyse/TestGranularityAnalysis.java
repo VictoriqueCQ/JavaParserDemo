@@ -1,3 +1,5 @@
+package Analyse;
+
 import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.*;
 import com.github.javaparser.ast.body.*;
@@ -22,7 +24,7 @@ import java.util.*;
   */
 public class TestGranularityAnalysis {
 
-    String ROOT_PATH = "/Users/sunweisong/Desktop/picasso/src/main/java";//"src\\main\\java"
+    String ROOT_PATH = "D:/picasso/src/main/java";//"src\\main\\java"
     List<FieldDeclaration> globelVariableList = new ArrayList<>();
     MethodDeclaration beforeMethod = null;
     MethodDeclaration afterMethod = null;
@@ -300,7 +302,7 @@ public class TestGranularityAnalysis {
     /**
       * Analyzing all statements in the test method.
       * @param testMethodDeclaration
-      * @return List<StatementModel>
+      * @return List<main.java.Analyse.StatementModel>
       * @date 2020/3/9 9:02 PM
       * @author sunweisong
       */
