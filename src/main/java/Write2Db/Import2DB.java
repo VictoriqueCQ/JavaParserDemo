@@ -23,10 +23,16 @@ public class Import2DB {
     public static final String URL = "jdbc:mysql://localhost:3306/tcdb";
     public static final String USER = "root";
     public static final String PASSWORD = "123456";
+    static String ROOT_PATH = "D:/picasso/src/";
 
     public static void main(String[] args) throws FileNotFoundException, SQLException {
+        writeImport2Db();
+
+    }
+
+    public static List<ImportInfoTable> writeImport2Db() throws SQLException, FileNotFoundException {
         Set<String> importDeclarationSet = new HashSet<>();
-        String ROOT_PATH = "D:/picasso/src/";
+
         List<String> filenames = new ArrayList<>();
         Utils.findFileList(new File(ROOT_PATH), filenames);
         for (String filename : filenames) {
@@ -37,7 +43,7 @@ public class Import2DB {
                 String packageName = packageDeclaration.getNameAsString();
                 List<ImportDeclaration> importDeclarationList = cu.findAll(ImportDeclaration.class);
                 for (ImportDeclaration id : importDeclarationList) {
-                    if (!id.getNameAsString().contains(packageName)&&!id.getNameAsString().contains("java.")) {
+                    if (!id.getNameAsString().contains(packageName) && !id.getNameAsString().contains("java.")) {
                         String importName = id.getNameAsString();
                         importDeclarationSet.add(importName);
                     }
@@ -46,6 +52,7 @@ public class Import2DB {
             }
         }
         Connection conn = DBUtil.getConnection();
+        List<ImportInfoTable> importInfoTableList = new ArrayList<>();
         for (String importString : importDeclarationSet) {
             Timestamp time = new Timestamp(System.currentTimeMillis());
             //获取连接
@@ -58,6 +65,7 @@ public class Import2DB {
             importInfoTable.setImportString(importString);
             importInfoTable.setStorageTime(time);
             importInfoTable.setImportId(MD5Util.getMD5(importString));
+            importInfoTableList.add(importInfoTable);
             ptmt.setString(1, importInfoTable.getImportId());
             ptmt.setString(2, importInfoTable.getImportString());
             ptmt.setTimestamp(3, importInfoTable.getStorageTime());
@@ -69,6 +77,6 @@ public class Import2DB {
 
         }
         conn.close();//关闭资源
-
+        return importInfoTableList;
     }
 }

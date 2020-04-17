@@ -19,13 +19,13 @@ public class Project2DB {
         String sql = "INSERT INTO project_info_table (project_id,project_name,project_type,repository_id,repository_url,repository_name,storage_time) VALUES (?,?,?,?,?,?,?)";
         PreparedStatement ptmt = conn.prepareStatement(sql); //预编译SQL，减少sql执行
         ProjectInfoTable projectInfoTable = new ProjectInfoTable();
-        projectInfoTable.setProjectName("picasso");
-        projectInfoTable.setProjectId(MD5Util.getMD5("000000picasso"));
+        projectInfoTable.setProjectName("sandbox-core");
+        projectInfoTable.setProjectId(MD5Util.getMD5("99183902sandbox-core"));
 //        projectInfoTable.setProjectId("000000picasso");
         projectInfoTable.setProjectType(0);
-        projectInfoTable.setRepositoryId("000000");
-        projectInfoTable.setRepositoryUrl("xxxxxx");
-        projectInfoTable.setRepositoryName("picasso");
+        projectInfoTable.setRepositoryId("99183902");
+        projectInfoTable.setRepositoryUrl("https://github.com/alibaba/jvm-sandbox");
+        projectInfoTable.setRepositoryName("jvm-sandbox");
         Timestamp time = new Timestamp(System.currentTimeMillis());
         projectInfoTable.setStorageTime(time);
         ptmt.setString(1,projectInfoTable.getProjectId());

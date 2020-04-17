@@ -19,6 +19,7 @@ import Analyse.MethodModel;
 
 import java.io.*;
 import java.util.*;
+import java.util.regex.Matcher;
 
 public class TestFileAnalysis {
     String FILE_PATH = "";
@@ -122,10 +123,12 @@ public class TestFileAnalysis {
                     expression.calculateResolvedType().describe();
                     normalArgumentMap.put(expression, true);
                 } catch (Exception e) {
-                    if (e.getMessage().contains(" in ")) {
-                        abnormalArgumentMap.put(expression, true);
-                    } else {
-                        abnormalArgumentMap.put(expression, false);
+                    if (e.getMessage() != null) {
+                        if (e.getMessage().contains(" in ")) {
+                            abnormalArgumentMap.put(expression, true);
+                        } else {
+                            abnormalArgumentMap.put(expression, false);
+                        }
                     }
                 }
             }
@@ -138,10 +141,12 @@ public class TestFileAnalysis {
                     expression.calculateResolvedType().describe();
                     normalArgumentMap.put(expression, true);
                 } catch (Exception e) {
-                    if (e.getMessage().contains(" in ")) {
-                        abnormalArgumentMap.put(expression, true);
-                    } else {
-                        abnormalArgumentMap.put(expression, false);
+                    if (e.getMessage() != null) {
+                        if (e.getMessage().contains(" in ")) {
+                            abnormalArgumentMap.put(expression, true);
+                        } else {
+                            abnormalArgumentMap.put(expression, false);
+                        }
                     }
                 }
             }
@@ -223,14 +228,18 @@ public class TestFileAnalysis {
             externalFieldDeclarationList.add(f);
             externalVariableDependency.add(f.toString());
         }
+        for (ImportDeclaration id : importPackageList) {
+            if (id.getNameAsString().contains("junit") || id.getNameAsString().contains("assert")) {
+                writeFileImportList.add(id.toString());
+            }
+        }
 
         //处理调用函数依赖
         for (MethodCallExpr mce : methodCallList) {
             if (!mce.toString().contains("assert")) {
                 MethodModel methodModel = getTargetMethod(mce, variableDeclarators, externalFieldDeclarationList);
-
                 if (methodModel != null) {
-//                    System.out.println(methodModel.getMethodName());
+//                    System.out.println(methodModel.getParameterTypeList());
                     MethodDeclaration method = methodModel.getMethodBody();
                     JavadocComment jc = new JavadocComment();
                     String javaDocCommentString = method.hasJavaDocComment() ? method.getJavadocComment().get().getContent() + "\n" : "";
@@ -263,6 +272,7 @@ public class TestFileAnalysis {
                     if (coid.getNameAsString().equals(objectClass)) {
                         List<ConstructorDeclaration> constructorDeclarationList = coid.getConstructors();
                         List<Expression> arguments = oce.getArguments();
+
                         List<String> argumentsType = getVariableTypeList(arguments, variableDeclarators, externalFieldDeclarationList);
                         for (ConstructorDeclaration cd : constructorDeclarationList) {
                             List<Parameter> parameters = cd.getParameters();
@@ -405,6 +415,7 @@ public class TestFileAnalysis {
             String methodName = expression.asMethodCallExpr().getNameAsString();
             List<Expression> arguments = expression.asMethodCallExpr().getArguments();
             List<String> newTypeList = getVariableTypeList(arguments, variableDeclarators, externalFieldDeclarationList);
+//            System.out.println(newTypeList.toString());
             if (Character.isUpperCase(object.toString().charAt(0))) {
                 //如果调用该方法的对象首字母是大写，说明是类class.xxx()，查看import
                 ImportDeclaration id = getImportDeclartion(importPackageList, object.toString());
@@ -446,9 +457,12 @@ public class TestFileAnalysis {
 //            normalMethodList.forEach(System.err::println);
             for (MethodDeclaration md : normalMethodList) {//如果是本文件的方法
                 String packageName = packageList.get(0).getNameAsString();
-                String className = FILE_PATH.split("/")[FILE_PATH.split("/").length - 1].split("\\.")[0];
+                String className = FILE_PATH.split(Matcher.quoteReplacement(File.separator))[FILE_PATH.split(Matcher.quoteReplacement(File.separator)).length - 1].split("\\.")[0];
+//                System.err.println("className:"+className);
                 List<Expression> arguments = expression.asMethodCallExpr().getArguments();
                 List<String> newTypeList = getVariableTypeList(arguments, variableDeclarators, externalFieldDeclarationList);
+//                System.out.println(newTypeList.toString());
+
                 if (matchMethod(methodName, newTypeList, md)) {
                     //说明是同一方法
 //                    System.out.println(className);
@@ -501,6 +515,7 @@ public class TestFileAnalysis {
         for (Expression expression1 : arguments) {
             VariableDeclarator vd2 = getVariableInitialize(expression1, globelVariableList, variableDeclarators, externalFieldDeclarationList);
             if (vd2 != null) {
+//                System.out.println("variable:"+vd2.getTypeAsString()+"+"+vd2);
                 variableTypeList.add(vd2.getTypeAsString());
             } else {
                 String basicType = getBasicDataType(expression1);
@@ -628,13 +643,17 @@ public class TestFileAnalysis {
             }
         }
         for (FieldDeclaration fd : fieldDeclarations) {
-            if (fd.getVariable(0).getNameAsExpression().equals(expression)) {
-                result = fd.getVariable(0);
+            if (fd.getVariables().size() > 0) {
+                if (fd.getVariable(0).getNameAsExpression().equals(expression)) {
+                    result = fd.getVariable(0);
+                }
             }
         }
         for (FieldDeclaration fd : externalFieldDeclarationList) {
-            if (fd.getVariable(0).getNameAsExpression().equals(expression)) {
-                result = fd.getVariable(0);
+            if (fd.getVariables().size() > 0) {
+                if (fd.getVariable(0).getNameAsExpression().equals(expression)) {
+                    result = fd.getVariable(0);
+                }
             }
         }
         return result;

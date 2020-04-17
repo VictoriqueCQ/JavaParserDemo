@@ -13,7 +13,7 @@ import java.io.FileNotFoundException;
 import java.util.List;
 
 public class Utils {
-    public static CompilationUnit constructCompilationUnit(String code, String FILE_PATH,String ROOT_PATH) throws FileNotFoundException {
+    public static CompilationUnit constructCompilationUnit(String code, String FILE_PATH, String ROOT_PATH) throws FileNotFoundException {
         CombinedTypeSolver combinedTypeSolver = new CombinedTypeSolver();
         TypeSolver javaParserTypeSolver = new JavaParserTypeSolver(new File(ROOT_PATH));
         combinedTypeSolver.add(javaParserTypeSolver);
@@ -24,6 +24,7 @@ public class Utils {
 
         return code == null ? StaticJavaParser.parse(new File(FILE_PATH)) : StaticJavaParser.parse(code);
     }
+
     public static void findFileList(File dir, List<String> fileNames) {
         if (!dir.exists() || !dir.isDirectory()) {// 判断是否存在目录
             return;

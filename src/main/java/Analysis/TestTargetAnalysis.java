@@ -6,6 +6,7 @@ import com.github.javaparser.ast.body.*;
 import com.github.javaparser.ast.expr.Expression;
 import com.github.javaparser.ast.expr.MethodCallExpr;
 import com.github.javaparser.ast.expr.ObjectCreationExpr;
+import com.github.javaparser.resolution.types.ResolvedType;
 import com.github.javaparser.symbolsolver.JavaSymbolSolver;
 import com.github.javaparser.symbolsolver.model.resolution.TypeSolver;
 import com.github.javaparser.symbolsolver.resolution.typesolvers.CombinedTypeSolver;
@@ -16,7 +17,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.*;
 
-public class testTargetAnalysis {
+public class TestTargetAnalysis {
     String FILE_PATH = "";
     String projectName;
     String repositoryId;
@@ -28,10 +29,10 @@ public class testTargetAnalysis {
     int assertFramework;
     List<FieldDeclaration> globelVariableList = null;
 
-    public testTargetAnalysis(String srcPath,int testFramework,int junitVersion,int assertFramework) {
+    public TestTargetAnalysis(String srcPath, int testFramework, int junitVersion, int assertFramework) {
         this.SRC_PATH = srcPath;
         this.testFramework = testFramework;
-        this.junitVersion  = junitVersion;
+        this.junitVersion = junitVersion;
         this.assertFramework = assertFramework;
     }
 
@@ -117,87 +118,10 @@ public class testTargetAnalysis {
             }
         }
         int firstAssertLine = 0;
-
-        if(testFramework==0){
-            if(junitVersion==3){
-                if(assertFramework==0){
-//                    Expression expression = arguments.get(0);
-                    for (MethodCallExpr mce : methodCallExprList) {
-
-                    }
-                }else if(assertFramework==1){
-//                    Expression expression = arguments.get(0);
-                    for (MethodCallExpr mce : methodCallExprList) {
-
-                    }
-                }else if(assertFramework==2){
-//                    Expression expression = arguments.get(0);
-                    for (MethodCallExpr mce : methodCallExprList) {
-
-                    }
-                }
-            }else if(junitVersion==4){
-                if(assertFramework==0){
-                    for (MethodCallExpr mce : methodCallExprList) {
-                        //自带
-                    }
-                }else if(assertFramework==1){
-                    for (MethodCallExpr mce : methodCallExprList) {
-                        //assertj
-                        if (mce.getNameAsString().equals("assertThat")) {
-                            if (firstAssertLine == 0) {
-                                firstAssertLine = mce.getRange().get().begin.line;
-                            } else {
-                                if (mce.getRange().get().begin.line < firstAssertLine) {
-                                    firstAssertLine = mce.getRange().get().begin.line;
-                                }
-                            }
-//                System.out.println(mce.toString());
-                            List<Expression> arguments = mce.getArguments();
-                        }
-                    }
-                }else if(assertFramework==2){
-                    for (MethodCallExpr mce : methodCallExprList) {
-                        //truth
-                        if (mce.getNameAsString().equals("assertThat")) {
-                            if (firstAssertLine == 0) {
-                                firstAssertLine = mce.getRange().get().begin.line;
-                            } else {
-                                if (mce.getRange().get().begin.line < firstAssertLine) {
-                                    firstAssertLine = mce.getRange().get().begin.line;
-                                }
-                            }
-//                System.out.println(mce.toString());
-                            List<Expression> arguments = mce.getArguments();
-                            if (arguments != null) {
-
-                            }
-                        }
-                    }
-                }
-            }else if(junitVersion==5){
-                if(assertFramework==0){
-                    for (MethodCallExpr mce : methodCallExprList) {
-
-                    }
-                }else if(assertFramework==1){
-                    for (MethodCallExpr mce : methodCallExprList) {
-
-                    }
-                }else if(assertFramework==2){
-                    for (MethodCallExpr mce : methodCallExprList) {
-
-                    }
-                }
-            }
-        }else if(testFramework==1&&junitVersion==-1){
-            for (MethodCallExpr mce : methodCallExprList) {
-
-            }
-        }
+        Expression expression = null;
 
         for (MethodCallExpr mce : methodCallExprList) {
-            if (mce.getNameAsString().equals("assert")) {
+            if (mce.getNameAsString().contains("assert")) {
                 if (firstAssertLine == 0) {
                     firstAssertLine = mce.getRange().get().begin.line;
                 } else {
@@ -205,155 +129,378 @@ public class testTargetAnalysis {
                         firstAssertLine = mce.getRange().get().begin.line;
                     }
                 }
-//                System.out.println(mce.toString());
                 List<Expression> arguments = mce.getArguments();
-                if (arguments != null) {
 
-//                    if (expression.isMethodCallExpr()) {
-//                        //如果是方法调用，那么就是目标那个方法
-//                        MethodCallExpr methodCallExpr = expression.asMethodCallExpr();
-//                        for (MethodDeclaration md : methodDeclarationList) {
-//                            int methodCallLine = 0;
-//                            String name = methodCallExpr.getNameAsString();
-//                            List<Expression> param = methodCallExpr.getArguments();
-//                            List<String> typeList = getVariableTypeList(param, variableDeclaratorList);
-//                            if (matchMethod(name, typeList, md)) {
-//                                methodCallLine = methodCallExpr.getRange().get().begin.line;
-//                                String target = fromMethodCommentToTarget(md);
-//                                if (!targetMap.containsKey(target)) {
-////                                    System.out.println(mce+"+" + methodCallLine);
-////                                    if (i > methodCallLine) {
-//                                    targetMap.put(target, methodCallLine);
-////                                    }
-//                                }
-//                                break;
-//                            }
-//                        }
-//                        if (expression.asMethodCallExpr().getScope().isPresent()) {
-//                            Expression expression1 = expression.asMethodCallExpr().getScope().get();
-//                            //获取变量初始化的地方
-//                            VariableDeclarator variableDeclarator = getVariableInitialize(expression1, globelVariableList, variableDeclaratorList);
-//                            if (variableDeclarator != null && variableDeclarator.getInitializer().isPresent()) {
-//                                int variableInitializeLine = 0;
-//                                if (variableDeclarator.getInitializer().get().isMethodCallExpr()) {
-////                                System.out.println(variableDeclarator);
-//                                    MethodCallExpr methodCallExpr1 = variableDeclarator.getInitializer().get().asMethodCallExpr();
-//                                    Map<String, Integer> map1 = getCallObjectMethod(methodDeclarationList, methodCallExpr1, variableDeclaratorList, firstAssertLine);
-//                                    if (!map1.isEmpty()) {
-//                                        targetMap.putAll(map1);
-//                                    } else {
-////                                    System.out.println(expression);
-////                                    System.out.println(variableDeclarator);
-//                                        if (methodCallExpr1.getArguments().size() != 0) {
-//                                            Expression expression2 = methodCallExpr1.getArgument(0);
-//                                            VariableDeclarator variableDeclarator1 = getVariableInitialize(expression2, globelVariableList, variableDeclaratorList);
-//                                            if (variableDeclarator1 != null && variableDeclarator1.getInitializer().isPresent()) {
-//                                                if (variableDeclarator1.getInitializer().get().isMethodCallExpr()) {
-//                                                    MethodCallExpr methodCallExpr2 = variableDeclarator1.getInitializer().get().asMethodCallExpr();
-//                                                    Map<String, Integer> map2 = getCallObjectMethod(methodDeclarationList, methodCallExpr2, variableDeclaratorList, firstAssertLine);
-////                                            System.out.println(map2);
-//                                                    if (!map2.isEmpty()) {
-////                                                System.out.println(map1.toString());
-//                                                        targetMap.putAll(map2);
-//                                                    }
-//                                                }
-//                                            }
-//                                        }
-////                                    System.out.println(variableDeclarator1);
-//                                    }
-//                                }
-//                            }
-//                            //找到变量函数调用
-//                            for (MethodCallExpr methodCall : methodCallExprList) {
-//                                int variableLastCallLine = 0;
-//                                if (methodCall.getScope().isPresent()) {
-//                                    if (methodCall.getScope().get().toString().equals(expression.asMethodCallExpr().getScope().get().toString()) && !methodCall.equals(expression)) {
-////                                    System.out.println(methodCall);
-//                                        Map<String, Integer> map = getVariableCallMethod(methodDeclarationList, methodCall, variableDeclaratorList, firstAssertLine);
-//
-//                                        targetMap.putAll(map);
-//                                    }
-//                                }
-//                            }
-//                        }
-//                    } else if (expression.isNameExpr()) {
-//                        //如果是变量
-//                        int variableInitializeLine = 0;
-//                        int variableLastCallLine = 0;
-//                        //获取变量初始化的地方
-//                        VariableDeclarator variableDeclarator = getVariableInitialize(expression, globelVariableList, variableDeclaratorList);
-//                        if (variableDeclarator != null && variableDeclarator.getInitializer().isPresent()) {
-//                            if (variableDeclarator.getInitializer().get().isMethodCallExpr()) {
-//                                MethodCallExpr methodCallExpr = variableDeclarator.getInitializer().get().asMethodCallExpr();
-//                                Map<String, Integer> map = getCallObjectMethod(methodDeclarationList, methodCallExpr, variableDeclaratorList, firstAssertLine);
-//                                if (map != null) {
-//                                    targetMap.putAll(map);
-//                                }
-//                            } else if (variableDeclarator.getInitializer().get().isObjectCreationExpr()) {
-//                                ObjectCreationExpr objectCreationExpr = variableDeclarator.getInitializer().get().asObjectCreationExpr();
-//                                Map<String, Integer> map = getNewObjectMethod(innerClassList, objectCreationExpr, variableDeclaratorList, firstAssertLine);
-//                                targetMap.putAll(map);
-//                            }
-//                        }
-//                        //找到最后一次变量函数调用
-//                        for (MethodCallExpr methodCall : methodCallExprList) {
-//                            if (methodCall.getScope().isPresent()) {
-//                                if (methodCall.getScope().get().toString().equals(expression.toString())) {
-//                                    Map<String, Integer> map = getVariableCallMethod(methodDeclarationList, methodCall, variableDeclaratorList, firstAssertLine);
-//                                    targetMap.putAll(map);
-//                                }
-//                            }
-//                        }
-//                    } else if (expression.isFieldAccessExpr()) {
-//                        //如果是xx.xx
-//                        int variableInitializeLine = 0;
-//                        int variableLastCallLine = 0;
-//                        Expression var = expression.asFieldAccessExpr().getScope();
-//                        if (var.isMethodCallExpr()) {
-//                            MethodCallExpr methodCallExpr = var.asMethodCallExpr();
-//                            Map<String, Integer> map = getCallObjectMethod(methodDeclarationList, methodCallExpr, variableDeclaratorList, firstAssertLine);
-//                            if (map != null) {
-//                                targetMap.putAll(map);
-//                            }
-//                        } else if (var.isNameExpr()) {
-//                            VariableDeclarator variableDeclarator = getVariableInitialize(var, globelVariableList, variableDeclaratorList);
-//                            if (variableDeclarator != null && variableDeclarator.getInitializer().isPresent()) {
-//                                if (variableDeclarator.getInitializer().get().isMethodCallExpr()) {
-//                                    MethodCallExpr methodCallExpr = variableDeclarator.getInitializer().get().asMethodCallExpr();
-//                                    Map<String, Integer> map = getCallObjectMethod(methodDeclarationList, methodCallExpr, variableDeclaratorList, firstAssertLine);
-//                                    if (map != null) {
-//                                        targetMap.putAll(map);
-//                                    }
-//                                } else if (variableDeclarator.getInitializer().get().isObjectCreationExpr()) {
-//                                    ObjectCreationExpr objectCreationExpr = variableDeclarator.getInitializer().get().asObjectCreationExpr();
-//                                    Map<String, Integer> map = getNewObjectMethod(innerClassList, objectCreationExpr, variableDeclaratorList, firstAssertLine);
-//                                    targetMap.putAll(map);
-//                                }
-//                            }
-//                            //找到最后一次变量函数调用
-//                            for (MethodCallExpr methodCall : methodCallExprList) {
-//                                if (methodCall.getScope().isPresent()) {
-//                                    if (methodCall.getScope().get().toString().equals(expression.asFieldAccessExpr().getScope().toString())) {
-//                                        Map<String, Integer> map = getVariableCallMethod(methodDeclarationList, methodCall, variableDeclaratorList, firstAssertLine);
-//                                        targetMap.putAll(map);
-//                                    }
-//                                }
-//                            }
-//                        }
-//
-//                    }
-
-
-
+                if (arguments.size() == 1) {
+                    expression = arguments.get(0);
+                } else {
+                    if (testFramework == 0) {
+                        if (junitVersion == 3) {
+                            if (arguments.size() == 2) {
+                                expression = arguments.get(1);
+                            } else if (arguments.size() == 3) {
+                                Expression firstArgument = arguments.get(0);
+                                if (firstArgument.isStringLiteralExpr()) {
+                                    /**
+                                     * Example:
+                                     * assertEquals("string", boolean expected, boolean actual)
+                                     */
+                                    expression = arguments.get(2);
+                                } else {
+                                    ResolvedType resolvedType = firstArgument.calculateResolvedType();
+                                    if ("java.lang.String".equals(resolvedType.describe())) {
+                                        /**
+                                         * Example:
+                                         * String tempString = "string";
+                                         * assertEquals(tempString, Object expected, Object actual)
+                                         */
+                                        expression = arguments.get(2);
+                                    } else {
+                                        /**
+                                         * Example: assertEquals(double expected, double actual, double delta)
+                                         */
+                                        expression = arguments.get(1);
+                                    }
+                                }
+                            } else if (arguments.size() == 4) {
+                                expression = arguments.get(2);
+                            }
+                        } else if (junitVersion == 4) {
+                            if (arguments.size() == 2) {
+                                if (mce.getNameAsString().equals("assertThat") || mce.getNameAsString().equals("assertThrows")) {
+                                    expression = arguments.get(0);
+                                } else {
+                                    expression = arguments.get(1);
+                                }
+                            } else if (arguments.size() == 3) {
+                                if (mce.getNameAsString().equals("assertThat") || mce.getNameAsString().equals("assertThrows")) {
+                                    expression = arguments.get(1);
+                                } else {
+                                    Expression firstArgument = arguments.get(0);
+                                    if (firstArgument.isStringLiteralExpr()) {
+                                        /**
+                                         * Example: assertEquals("string", Object expected, Object actual)
+                                         */
+                                        expression = arguments.get(2);
+                                    } else {
+                                        ResolvedType resolvedType = firstArgument.calculateResolvedType();
+                                        if ("java.lang.String".equals(resolvedType.describe())) {
+                                            /**
+                                             * Example:
+                                             * String tempString = "string";
+                                             * assertEquals(tempString, Object expected, Object actual)
+                                             */
+                                            expression = arguments.get(2);
+                                        } else {
+                                            /**
+                                             * Example: assertEquals(double expected, double actual, double delta)
+                                             */
+                                            expression = arguments.get(1);
+                                        }
+                                    }
+                                }
+                            } else if (arguments.size() == 4) {
+                                /**
+                                 * Example: assertEquals(String message, double expected, double actual, double delta)
+                                 */
+                                expression = arguments.get(2);
+                            }
+                        } else if (junitVersion == 5) {
+                            if (arguments.size() == 2) {
+//                                "assertFalse".equals(assertMethodName) || "assertTrue".equals(assertMethodName)
+//                                        || "assertNull".equals(assertMethodName) || "assertNotNull".equals(assertMethodName)
+                                if (mce.getNameAsString().equals("assertFalse") || mce.getNameAsString().equals("assertTrue") || mce.getNameAsString().equals("assertNull") || mce.getNameAsString().equals("assertNotNull")) {
+                                    /**
+                                     * Example:
+                                     * assertTrue (boolean condition, String message)
+                                     * assertNull (Object actual, String message)
+                                     */
+                                    expression = arguments.get(0);
+                                } else {
+                                    /**
+                                     * Example: assertEquals (byte expected, byte actual)
+                                     */
+                                    expression = arguments.get(1);
+                                }
+                            } else if (arguments.size() == 3 || arguments.size() == 4) {
+                                /**
+                                 * Example:
+                                 * assertEquals (byte expected, byte actual, String message)
+                                 * assertEquals (float expected, float actual, float delta, String message)
+                                 */
+                                expression = arguments.get(1);
+                            }
+                        }
+                    }
                 }
             }
         }
+//        System.out.println("expression1:"+expression);
+        targetMap = getTargetMap(expression, methodDeclarationList, variableDeclaratorList, methodCallExprList, innerClassList, firstAssertLine);
 
+
+//        if (testFramework == 0) {
+//            if (junitVersion == 3) {
+//                if (assertFramework == 0) {
+////                    Expression expression = arguments.get(0);
+//                    for (MethodCallExpr mce : methodCallExprList) {
+//
+//                    }
+//                } else if (assertFramework == 1) {
+////                    Expression expression = arguments.get(0);
+//                    for (MethodCallExpr mce : methodCallExprList) {
+//
+//                    }
+//                } else if (assertFramework == 2) {
+////                    Expression expression = arguments.get(0);
+//                    for (MethodCallExpr mce : methodCallExprList) {
+//
+//                    }
+//                }
+//            } else if (junitVersion == 4) {
+//                if (assertFramework == 0) {
+//                    for (MethodCallExpr mce : methodCallExprList) {
+//                        //自带
+//                    }
+//                } else if (assertFramework == 1) {
+//                    for (MethodCallExpr mce : methodCallExprList) {
+//                        //assertj
+//                        if (mce.getNameAsString().equals("assertThat")) {
+//                            if (firstAssertLine == 0) {
+//                                firstAssertLine = mce.getRange().get().begin.line;
+//                            } else {
+//                                if (mce.getRange().get().begin.line < firstAssertLine) {
+//                                    firstAssertLine = mce.getRange().get().begin.line;
+//                                }
+//                            }
+//                            List<Expression> arguments = mce.getArguments();
+//                            if (arguments != null) {
+//                                expression = arguments.get(0);
+//                                targetMap = getTargetMap(expression, methodDeclarationList, variableDeclaratorList, methodCallExprList, innerClassList, firstAssertLine);
+//
+//                            }
+//                        }
+//                    }
+//                } else if (assertFramework == 2) {
+//                    for (MethodCallExpr mce : methodCallExprList) {
+//                        //truth
+//                        if (mce.getNameAsString().equals("assertThat")) {
+//                            if (firstAssertLine == 0) {
+//                                firstAssertLine = mce.getRange().get().begin.line;
+//                            } else {
+//                                if (mce.getRange().get().begin.line < firstAssertLine) {
+//                                    firstAssertLine = mce.getRange().get().begin.line;
+//                                }
+//                            }
+////                System.out.println(mce.toString());
+//                            List<Expression> arguments = mce.getArguments();
+//                            if (arguments != null) {
+//                                expression = arguments.get(0);
+//                                targetMap = getTargetMap(expression, methodDeclarationList, variableDeclaratorList, methodCallExprList, innerClassList, firstAssertLine);
+//
+//                            }
+//                        }
+//                    }
+//                }
+//            } else if (junitVersion == 5) {
+//                if (assertFramework == 0) {
+////                    System.out.println("abcdefg");
+//                    for (MethodCallExpr mce : methodCallExprList) {
+//                        if (mce.getNameAsString().contains("assert")) {
+//                            if (mce.getArguments().size() == 1) {
+//                                List<Expression> arguments = mce.getArguments();
+//                                if (arguments != null) {
+//                                    expression = arguments.get(0);
+//                                    targetMap = getTargetMap(expression, methodDeclarationList, variableDeclaratorList, methodCallExprList, innerClassList, firstAssertLine);
+//
+//                                }
+//                            } else {
+//                                List<Expression> arguments = mce.getArguments();
+//                                if (arguments != null) {
+//                                    expression = arguments.get(1);
+//                                    targetMap = getTargetMap(expression, methodDeclarationList, variableDeclaratorList, methodCallExprList, innerClassList, firstAssertLine);
+//
+//                                }
+//                            }
+//                        }
+//                    }
+//                } else if (assertFramework == 1) {
+//                    for (MethodCallExpr mce : methodCallExprList) {
+//
+//                    }
+//                } else if (assertFramework == 2) {
+//                    for (MethodCallExpr mce : methodCallExprList) {
+//
+//                    }
+//                }
+//            }
+//        } else if (testFramework == 1 && junitVersion == -1) {
+//            for (MethodCallExpr mce : methodCallExprList) {
+//
+//            }
+//        }
+
+//        for (MethodCallExpr mce : methodCallExprList) {
+//            if (mce.getNameAsString().contains("assert")) {
+//                if (firstAssertLine == 0) {
+//                    firstAssertLine = mce.getRange().get().begin.line;
+//                } else {
+//                    if (mce.getRange().get().begin.line < firstAssertLine) {
+//                        firstAssertLine = mce.getRange().get().begin.line;
+//                    }
+//                }
+////                System.out.println(mce.toString());
+//                List<Expression> arguments = mce.getArguments();
+//                if (arguments != null) {
+//
+////                    if (expression.isMethodCallExpr()) {
+////                        //如果是方法调用，那么就是目标那个方法
+////                        MethodCallExpr methodCallExpr = expression.asMethodCallExpr();
+////                        for (MethodDeclaration md : methodDeclarationList) {
+////                            int methodCallLine = 0;
+////                            String name = methodCallExpr.getNameAsString();
+////                            List<Expression> param = methodCallExpr.getArguments();
+////                            List<String> typeList = getVariableTypeList(param, variableDeclaratorList);
+////                            if (matchMethod(name, typeList, md)) {
+////                                methodCallLine = methodCallExpr.getRange().get().begin.line;
+////                                String target = fromMethodCommentToTarget(md);
+////                                if (!targetMap.containsKey(target)) {
+//////                                    System.out.println(mce+"+" + methodCallLine);
+//////                                    if (i > methodCallLine) {
+////                                    targetMap.put(target, methodCallLine);
+//////                                    }
+////                                }
+////                                break;
+////                            }
+////                        }
+////                        if (expression.asMethodCallExpr().getScope().isPresent()) {
+////                            Expression expression1 = expression.asMethodCallExpr().getScope().get();
+////                            //获取变量初始化的地方
+////                            VariableDeclarator variableDeclarator = getVariableInitialize(expression1, globelVariableList, variableDeclaratorList);
+////                            if (variableDeclarator != null && variableDeclarator.getInitializer().isPresent()) {
+////                                int variableInitializeLine = 0;
+////                                if (variableDeclarator.getInitializer().get().isMethodCallExpr()) {
+//////                                System.out.println(variableDeclarator);
+////                                    MethodCallExpr methodCallExpr1 = variableDeclarator.getInitializer().get().asMethodCallExpr();
+////                                    Map<String, Integer> map1 = getCallObjectMethod(methodDeclarationList, methodCallExpr1, variableDeclaratorList, firstAssertLine);
+////                                    if (!map1.isEmpty()) {
+////                                        targetMap.putAll(map1);
+////                                    } else {
+//////                                    System.out.println(expression);
+//////                                    System.out.println(variableDeclarator);
+////                                        if (methodCallExpr1.getArguments().size() != 0) {
+////                                            Expression expression2 = methodCallExpr1.getArgument(0);
+////                                            VariableDeclarator variableDeclarator1 = getVariableInitialize(expression2, globelVariableList, variableDeclaratorList);
+////                                            if (variableDeclarator1 != null && variableDeclarator1.getInitializer().isPresent()) {
+////                                                if (variableDeclarator1.getInitializer().get().isMethodCallExpr()) {
+////                                                    MethodCallExpr methodCallExpr2 = variableDeclarator1.getInitializer().get().asMethodCallExpr();
+////                                                    Map<String, Integer> map2 = getCallObjectMethod(methodDeclarationList, methodCallExpr2, variableDeclaratorList, firstAssertLine);
+//////                                            System.out.println(map2);
+////                                                    if (!map2.isEmpty()) {
+//////                                                System.out.println(map1.toString());
+////                                                        targetMap.putAll(map2);
+////                                                    }
+////                                                }
+////                                            }
+////                                        }
+//////                                    System.out.println(variableDeclarator1);
+////                                    }
+////                                }
+////                            }
+////                            //找到变量函数调用
+////                            for (MethodCallExpr methodCall : methodCallExprList) {
+////                                int variableLastCallLine = 0;
+////                                if (methodCall.getScope().isPresent()) {
+////                                    if (methodCall.getScope().get().toString().equals(expression.asMethodCallExpr().getScope().get().toString()) && !methodCall.equals(expression)) {
+//////                                    System.out.println(methodCall);
+////                                        Map<String, Integer> map = getVariableCallMethod(methodDeclarationList, methodCall, variableDeclaratorList, firstAssertLine);
+////
+////                                        targetMap.putAll(map);
+////                                    }
+////                                }
+////                            }
+////                        }
+////                    } else if (expression.isNameExpr()) {
+////                        //如果是变量
+////                        int variableInitializeLine = 0;
+////                        int variableLastCallLine = 0;
+////                        //获取变量初始化的地方
+////                        VariableDeclarator variableDeclarator = getVariableInitialize(expression, globelVariableList, variableDeclaratorList);
+////                        if (variableDeclarator != null && variableDeclarator.getInitializer().isPresent()) {
+////                            if (variableDeclarator.getInitializer().get().isMethodCallExpr()) {
+////                                MethodCallExpr methodCallExpr = variableDeclarator.getInitializer().get().asMethodCallExpr();
+////                                Map<String, Integer> map = getCallObjectMethod(methodDeclarationList, methodCallExpr, variableDeclaratorList, firstAssertLine);
+////                                if (map != null) {
+////                                    targetMap.putAll(map);
+////                                }
+////                            } else if (variableDeclarator.getInitializer().get().isObjectCreationExpr()) {
+////                                ObjectCreationExpr objectCreationExpr = variableDeclarator.getInitializer().get().asObjectCreationExpr();
+////                                Map<String, Integer> map = getNewObjectMethod(innerClassList, objectCreationExpr, variableDeclaratorList, firstAssertLine);
+////                                targetMap.putAll(map);
+////                            }
+////                        }
+////                        //找到最后一次变量函数调用
+////                        for (MethodCallExpr methodCall : methodCallExprList) {
+////                            if (methodCall.getScope().isPresent()) {
+////                                if (methodCall.getScope().get().toString().equals(expression.toString())) {
+////                                    Map<String, Integer> map = getVariableCallMethod(methodDeclarationList, methodCall, variableDeclaratorList, firstAssertLine);
+////                                    targetMap.putAll(map);
+////                                }
+////                            }
+////                        }
+////                    } else if (expression.isFieldAccessExpr()) {
+////                        //如果是xx.xx
+////                        int variableInitializeLine = 0;
+////                        int variableLastCallLine = 0;
+////                        Expression var = expression.asFieldAccessExpr().getScope();
+////                        if (var.isMethodCallExpr()) {
+////                            MethodCallExpr methodCallExpr = var.asMethodCallExpr();
+////                            Map<String, Integer> map = getCallObjectMethod(methodDeclarationList, methodCallExpr, variableDeclaratorList, firstAssertLine);
+////                            if (map != null) {
+////                                targetMap.putAll(map);
+////                            }
+////                        } else if (var.isNameExpr()) {
+////                            VariableDeclarator variableDeclarator = getVariableInitialize(var, globelVariableList, variableDeclaratorList);
+////                            if (variableDeclarator != null && variableDeclarator.getInitializer().isPresent()) {
+////                                if (variableDeclarator.getInitializer().get().isMethodCallExpr()) {
+////                                    MethodCallExpr methodCallExpr = variableDeclarator.getInitializer().get().asMethodCallExpr();
+////                                    Map<String, Integer> map = getCallObjectMethod(methodDeclarationList, methodCallExpr, variableDeclaratorList, firstAssertLine);
+////                                    if (map != null) {
+////                                        targetMap.putAll(map);
+////                                    }
+////                                } else if (variableDeclarator.getInitializer().get().isObjectCreationExpr()) {
+////                                    ObjectCreationExpr objectCreationExpr = variableDeclarator.getInitializer().get().asObjectCreationExpr();
+////                                    Map<String, Integer> map = getNewObjectMethod(innerClassList, objectCreationExpr, variableDeclaratorList, firstAssertLine);
+////                                    targetMap.putAll(map);
+////                                }
+////                            }
+////                            //找到最后一次变量函数调用
+////                            for (MethodCallExpr methodCall : methodCallExprList) {
+////                                if (methodCall.getScope().isPresent()) {
+////                                    if (methodCall.getScope().get().toString().equals(expression.asFieldAccessExpr().getScope().toString())) {
+////                                        Map<String, Integer> map = getVariableCallMethod(methodDeclarationList, methodCall, variableDeclaratorList, firstAssertLine);
+////                                        targetMap.putAll(map);
+////                                    }
+////                                }
+////                            }
+////                        }
+////
+////                    }
+//
+//
+//
+//                }
+//            }
+//        }
+//        getTargetMap(expression,methodDeclarationList,variableDeclaratorList,methodCallExprList,innerClassList,firstAssertLine);
         return targetMap;
     }
-    public Map<String, Integer> getTargetMap(Expression expression,List<MethodDeclaration>methodDeclarationList,List<VariableDeclarator> variableDeclaratorList,List<MethodCallExpr>methodCallExprList,List<ClassOrInterfaceDeclaration>innerClassList,int firstAssertLine){
+
+    public Map<String, Integer> getTargetMap(Expression expression, List<MethodDeclaration> methodDeclarationList, List<VariableDeclarator> variableDeclaratorList, List<MethodCallExpr> methodCallExprList, List<ClassOrInterfaceDeclaration> innerClassList, int firstAssertLine) {
         Map<String, Integer> targetMap = new HashMap<>();
         if (expression.isMethodCallExpr()) {
+//            System.out.println("expression2:"+expression);
+
             //如果是方法调用，那么就是目标那个方法
             MethodCallExpr methodCallExpr = expression.asMethodCallExpr();
             for (MethodDeclaration md : methodDeclarationList) {
@@ -364,7 +511,7 @@ public class testTargetAnalysis {
                 if (matchMethod(name, typeList, md)) {
                     methodCallLine = methodCallExpr.getRange().get().begin.line;
                     String target = fromMethodCommentToTarget(md);
-                    if (!targetMap.containsKey(target)) {
+                    if (!targetMap.containsKey(target) && target != null) {
 //                                    System.out.println(mce+"+" + methodCallLine);
 //                                    if (i > methodCallLine) {
                         targetMap.put(target, methodCallLine);
@@ -421,6 +568,8 @@ public class testTargetAnalysis {
                 }
             }
         } else if (expression.isNameExpr()) {
+//            System.out.println("expression2:"+expression);
+
             //如果是变量
             int variableInitializeLine = 0;
             int variableLastCallLine = 0;
@@ -449,6 +598,8 @@ public class testTargetAnalysis {
                 }
             }
         } else if (expression.isFieldAccessExpr()) {
+//            System.out.println("expression2:"+expression);
+
             //如果是xx.xx
             int variableInitializeLine = 0;
             int variableLastCallLine = 0;
@@ -529,7 +680,7 @@ public class testTargetAnalysis {
             if (matchMethod(name, typeList, md)) {
                 int variableLastCallLine = methodCall.getRange().get().begin.line;
                 String target = fromMethodCommentToTarget(md);
-                if (!targetMap.containsKey(target)) {
+                if (!targetMap.containsKey(target) && target != null) {
                     targetMap.put(target, variableLastCallLine);
 
                 }
@@ -549,7 +700,7 @@ public class testTargetAnalysis {
             if (matchMethod(name, typeList, md)) {
                 int variableInitializeLine = methodCallExpr.getRange().get().begin.line;
                 String target = fromMethodCommentToTarget(md);
-                if (!targetMap.containsKey(target)) {
+                if (!targetMap.containsKey(target) && target != null) {
                     targetMap.put(target, variableInitializeLine);
                 }
                 break;
@@ -585,7 +736,7 @@ public class testTargetAnalysis {
                     if (flag) {
                         int variableInitializeLine = objectCreationExpr.getRange().get().begin.line;
                         String target = fromConstructorCommentToTarget(cd);
-                        if (!targetMap.containsKey(target)) {
+                        if (!targetMap.containsKey(target) && target != null) {
                             targetMap.put(target, variableInitializeLine);
                         }
                         break;

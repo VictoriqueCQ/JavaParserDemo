@@ -1,5 +1,8 @@
 package Analysis;
 
+import Analyse.MethodModel;
+import Model.MethodInfoTable;
+import Utils.MD5Util;
 import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.*;
 import com.github.javaparser.ast.body.*;
@@ -12,11 +15,6 @@ import com.github.javaparser.symbolsolver.model.resolution.TypeSolver;
 import com.github.javaparser.symbolsolver.resolution.typesolvers.CombinedTypeSolver;
 import com.github.javaparser.symbolsolver.resolution.typesolvers.JavaParserTypeSolver;
 import com.github.javaparser.symbolsolver.resolution.typesolvers.ReflectionTypeSolver;
-import Analyse.MethodModel;
-import Comment.CommentAnalysis;
-import Comment.TokenModel;
-import Model.MethodInfoTable;
-import Utils.MD5Util;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -27,16 +25,24 @@ import java.util.*;
 
 public class MUTAnalysis {
 
-    final String SRC_PATH = "D:/picasso/src";
+//    final String SRC_PATH = "D:/picasso/src";
     String FILE_PATH = "";
+    String projectName;
+    String repositoryId;
+    String star;
+    String SRC_PATH;
     static List<ClassOrInterfaceDeclaration> innerClassList = new ArrayList<>();
     static List<FieldDeclaration> globelVariableList = new ArrayList<>();
     static List<PackageDeclaration> packageList = new ArrayList<>();
     static List<ImportDeclaration> importPackageList = new ArrayList<>();
     static List<MethodDeclaration> normalMethodList = new ArrayList<>();
 
-    public MUTAnalysis(String filePath) {
-        this.FILE_PATH = filePath;
+    public MUTAnalysis(String srcPath, String FILE_PATH, String projectName, String repositoryId, String star) {
+        this.SRC_PATH = srcPath;
+        this.FILE_PATH = FILE_PATH;
+        this.projectName = projectName;
+        this.repositoryId = repositoryId;
+        this.star = star;
     }
 //    public static void main(String[] args) throws Exception {
 //        main.java.Analyse.MUTAnalysis mutAnalysis = new main.java.Analyse.MUTAnalysis();
@@ -89,7 +95,7 @@ public class MUTAnalysis {
     }
 
 
-    public MethodInfoTable methodExtraction(int index, String methodClass) throws FileNotFoundException {
+    public MethodInfoTable methodExtraction(String projectName, String repositoryId, int index, String methodClass) throws FileNotFoundException {
         Set<String> importDependencySet = new HashSet<>();
         List<FieldDeclaration> externalFieldDeclarationList = new ArrayList<>();
         List<String> methodDependency = new ArrayList<>();
@@ -120,11 +126,14 @@ public class MUTAnalysis {
                     expression.calculateResolvedType().describe();
                     normalArgumentMap.put(expression, true);
                 } catch (Exception e) {
-                    if (e.getMessage().contains(" in ")) {
-                        abnormalArgumentMap.put(expression, true);
-                    } else {
-                        abnormalArgumentMap.put(expression, false);
+                    if (e.getMessage() != null) {
+                        if (e.getMessage().contains(" in ")) {
+                            abnormalArgumentMap.put(expression, true);
+                        } else {
+                            abnormalArgumentMap.put(expression, false);
+                        }
                     }
+
                 }
             }
         });
@@ -136,10 +145,12 @@ public class MUTAnalysis {
                     expression.calculateResolvedType().describe();
                     normalArgumentMap.put(expression, true);
                 } catch (Exception e) {
-                    if (e.getMessage().contains(" in ")) {
-                        abnormalArgumentMap.put(expression, true);
-                    } else {
-                        abnormalArgumentMap.put(expression, false);
+                    if (e.getMessage() != null) {
+                        if (e.getMessage().contains(" in ")) {
+                            abnormalArgumentMap.put(expression, true);
+                        } else {
+                            abnormalArgumentMap.put(expression, false);
+                        }
                     }
                 }
             }
@@ -211,7 +222,7 @@ public class MUTAnalysis {
         List<String> writeFileImportList = new ArrayList<>();
         Map<String, String> importMap = new HashMap<>();
         for (ImportDeclaration i : importList) {
-            String path = "D:/picasso/src/main/java/" + i.getNameAsString().replaceAll("\\.", "/");
+            String path = SRC_PATH + "/main/java/" + i.getNameAsString().replaceAll("\\.", "/");
             String newPath = findFile(path);
             if (newPath.length() == 0) {
                 writeFileImportList.add(i.toString());
@@ -328,10 +339,10 @@ public class MUTAnalysis {
                 MethodModel methodModel = getExternalMethod(objectClass, packageName, objectClass, argumentsType);
 
                 if (methodModel != null) {
-                    System.out.println(methodModel.toString());
+//                    System.out.println(methodModel.toString());
                     ConstructorDeclaration method = methodModel.getConstructorBody();
                     JavadocComment jc = new JavadocComment();
-                    System.out.println(method);
+//                    System.out.println(method);
                     String javaDocCommentString = method.hasJavaDocComment() ? method.getJavadocComment().get().getContent() + "\n" : "";
                     if (!(javaDocCommentString.contains("packagename:") && javaDocCommentString.contains("classname:") && javaDocCommentString.contains("methodname:") && javaDocCommentString.contains("parametertype:") && javaDocCommentString.contains("fromTest:"))) {
                         javaDocCommentString +=
@@ -357,6 +368,7 @@ public class MUTAnalysis {
         if (cu2.findAll(MethodDeclaration.class).size() != 0) {
             MethodDeclaration myMethod = cu2.findAll(MethodDeclaration.class).get(0);
             String typeString = fileNameTypeList(myMethod);
+//            System.out.println(typeString);
             myClass.addMember(myMethod);
             for (MethodDeclaration md : methodDeclarationSet) {
                 myClass.addMember(md);
@@ -369,8 +381,10 @@ public class MUTAnalysis {
             }
             String methodName = myMethod.getNameAsString();
             String className = FILE_PATH.split("/")[FILE_PATH.split("/").length - 1].split("\\.")[0];
-            writeMUTClass(testOrProduct, packageName, methodName, typeString, writeFileImportList, externalMethodList, myClass);
-            methodInfoTable = constructMethodEntity(packageName, className, methodName, typeString, importDependencySet, methodDeclarationSet, constructorDeclarationSet, constructorClassDeclarationSet, myMethod);
+//            writeMUTClass(testOrProduct, packageName, methodName, typeString, writeFileImportList, externalMethodList, myClass);
+//            System.out.println(packageName + "+" + className + "+" + methodName + "+" + typeString);
+
+            methodInfoTable = constructMethodEntity(projectName, repositoryId, packageName, className, methodName, typeString, importDependencySet, methodDeclarationSet, constructorDeclarationSet, constructorClassDeclarationSet, myMethod);
         } else {
             ConstructorDeclaration myMethod = cu2.findAll(ConstructorDeclaration.class).get(0);
             String typeString = fileNameTypeList(myMethod);
@@ -386,22 +400,24 @@ public class MUTAnalysis {
             }
             String methodName = myMethod.getNameAsString();
             String className = FILE_PATH.split("/")[FILE_PATH.split("/").length - 1].split("\\.")[0];
-            writeMUTClass(testOrProduct, packageName, methodName, typeString, writeFileImportList, externalMethodList, myClass);
-            methodInfoTable = constructMethodEntity(packageName, className, methodName, typeString, importDependencySet, methodDeclarationSet, constructorDeclarationSet, constructorClassDeclarationSet, myMethod);
-        }
+//            writeMUTClass(testOrProduct, packageName, methodName, typeString, writeFileImportList, externalMethodList, myClass);
+//            System.out.println(packageName + "+" + className + "+" + methodName + "+" + typeString);
 
+            methodInfoTable = constructMethodEntity(projectName, repositoryId, packageName, className, methodName, typeString, importDependencySet, methodDeclarationSet, constructorDeclarationSet, constructorClassDeclarationSet, myMethod);
+        }
 
         return methodInfoTable;
     }
 
-    public MethodInfoTable constructMethodEntity(String packageName, String className, String methodName, String typeString, Set<String> importDependencySet, Set<MethodDeclaration> MethodDependencySet, Set<ConstructorDeclaration> ConstructorDependencySet, Set<ClassOrInterfaceDeclaration> ConstructorClassDependencySet, MethodDeclaration myMethod) {
+    public MethodInfoTable constructMethodEntity(String projectName, String repositoryId, String packageName, String className, String methodName, String typeString, Set<String> importDependencySet, Set<MethodDeclaration> MethodDependencySet, Set<ConstructorDeclaration> ConstructorDependencySet, Set<ClassOrInterfaceDeclaration> ConstructorClassDependencySet, MethodDeclaration myMethod) {
         int isMut = 0;
         if (myMethod.getAnnotationByName("Test").isPresent()) {
             isMut = 1;
         }
         MethodInfoTable methodInfoTable = new MethodInfoTable();
         String signature = packageName + "+" + className + "+" + methodName + "+" + typeString;
-        String methodId = MD5Util.getMD5("000000picasso" + signature);
+//        System.out.println("signature:"+signature);
+        String methodId = MD5Util.getMD5(repositoryId + projectName + signature);
         methodInfoTable.setMethodId(methodId);
 
         methodInfoTable.setMethodSignature(signature);
@@ -417,16 +433,16 @@ public class MUTAnalysis {
         methodInfoTable.setMethodComment(myMethod.getAllContainedComments().toString() + "\n" + myMethod.getJavadoc().toString());
 
         String comment = myMethod.getAllContainedComments().toString() + "\n" + myMethod.getJavadoc().toString();
-        comment = CommentAnalysis.extractCommentDescription(comment);
-        List<TokenModel> tokenModelList = CommentAnalysis.commentNLPProcessing(comment);
+//        comment = CommentAnalysis.extractCommentDescription(comment);
+//        List<TokenModel> tokenModelList = CommentAnalysis.commentNLPProcessing(comment);
         String keywords = "";
-        if (tokenModelList.size() > 0) {
-            keywords += tokenModelList.get(0).toString();
-            for (int i = 1; i < tokenModelList.size(); i++) {
-                keywords += "," + tokenModelList.get(i).toString();
-            }
-        }
-        methodInfoTable.setMethodCommentKeywords(keywords);
+//        if (tokenModelList.size() > 0) {
+//            keywords += tokenModelList.get(0).toString();
+//            for (int i = 1; i < tokenModelList.size(); i++) {
+//                keywords += "," + tokenModelList.get(i).toString();
+//            }
+//        }
+        methodInfoTable.setMethodCommentKeywords("keywords");
 
         methodInfoTable.setMethodCode(myMethod.toString());
 
@@ -436,7 +452,7 @@ public class MUTAnalysis {
         String importDependencyString = "";
         if (importDependencySet.size() > 0) {
             for (String s : importDependencySet) {
-                importDependencyString += MD5Util.getMD5(s)+",";
+                importDependencyString += MD5Util.getMD5(s) + ",";
 //                importDependencyString += s + ",";
             }
         }
@@ -447,13 +463,15 @@ public class MUTAnalysis {
             for (MethodDeclaration md : MethodDependencySet) {
                 String target = "";
                 String[] dependencyComment = md.getJavadoc().get().toText().split(System.lineSeparator());
+
                 for (int i = 0; i < dependencyComment.length; i++) {
-                    if (dependencyComment[i].contains("packagename") || dependencyComment[i].contains("classname") || dependencyComment[i].contains("methodname") || dependencyComment[i].contains("parametertype")) {
+                    if (dependencyComment[i].contains("packagename:") || dependencyComment[i].contains("classname:") || dependencyComment[i].contains("methodname:") || dependencyComment[i].contains("parametertype:")) {
+//                        System.out.println(dependencyComment[i]);
                         target += dependencyComment[i].split(":")[1] + "+";
                     }
                 }
-                target = target.substring(0,target.length()-1);
-                methodDependencyString += MD5Util.getMD5("000000picasso"+target) + ",";
+                target = target.substring(0, target.length() - 1);
+                methodDependencyString += MD5Util.getMD5(repositoryId + projectName + target) + ",";
 //                methodDependencyString += "000000picasso"+target + ",";
             }
         }
@@ -466,8 +484,8 @@ public class MUTAnalysis {
                         target += dependencyComment[i].split(":")[1] + "+";
                     }
                 }
-                target = target.substring(0,target.length()-1);
-                methodDependencyString += MD5Util.getMD5("000000picasso"+target) + ",";
+                target = target.substring(0, target.length() - 1);
+                methodDependencyString += MD5Util.getMD5(repositoryId + projectName + target) + ",";
 //                methodDependencyString += "000000picasso"+target + ",";
             }
         }
@@ -481,15 +499,15 @@ public class MUTAnalysis {
                             target += dependencyComment[i].split(":")[1] + "+";
                         }
                     }
-                    target = target.substring(0,target.length()-1);
-                methodDependencyString += MD5Util.getMD5("000000picasso"+target) + ",";
+                    target = target.substring(0, target.length() - 1);
+                    methodDependencyString += MD5Util.getMD5(repositoryId + projectName + target) + ",";
 //                    methodDependencyString += "000000picasso"+target + ",";
                 }
             }
         }
         methodInfoTable.setMethodDependencies(methodDependencyString);
 
-        methodInfoTable.setProjectId("000000picasso");
+        methodInfoTable.setProjectId(repositoryId + projectName);
 
         Timestamp time = new Timestamp(System.currentTimeMillis());
         methodInfoTable.setStorageTime(time);
@@ -499,14 +517,15 @@ public class MUTAnalysis {
         return methodInfoTable;
     }
 
-    public MethodInfoTable constructMethodEntity(String packageName, String className, String methodName, String typeString, Set<String> importDependencySet, Set<MethodDeclaration> MethodDependencySet, Set<ConstructorDeclaration> ConstructorDependencySet, Set<ClassOrInterfaceDeclaration> ConstructorClassDependencySet, ConstructorDeclaration myMethod) {
+    public MethodInfoTable constructMethodEntity(String projectName, String repositoryId, String packageName, String className, String methodName, String typeString, Set<String> importDependencySet, Set<MethodDeclaration> MethodDependencySet, Set<ConstructorDeclaration> ConstructorDependencySet, Set<ClassOrInterfaceDeclaration> ConstructorClassDependencySet, ConstructorDeclaration myMethod) {
         int isMut = 0;
         if (myMethod.getAnnotationByName("Test").isPresent()) {
             isMut = 1;
         }
         MethodInfoTable methodInfoTable = new MethodInfoTable();
         String signature = packageName + "+" + className + "+" + methodName + "+" + typeString;
-        String methodId = MD5Util.getMD5("000000picasso" + signature);
+//        System.out.println("signature:"+signature);
+        String methodId = MD5Util.getMD5(repositoryId + projectName + signature);
 //        String methodId = "000000+picasso+" + signature;
         methodInfoTable.setMethodId(methodId);
 
@@ -523,16 +542,16 @@ public class MUTAnalysis {
         methodInfoTable.setMethodComment(myMethod.getAllContainedComments().toString() + "\n" + myMethod.getJavadoc().toString());
 
         String comment = myMethod.getAllContainedComments().toString() + "\n" + myMethod.getJavadoc().toString();
-        comment = CommentAnalysis.extractCommentDescription(comment);
-        List<TokenModel> tokenModelList = CommentAnalysis.commentNLPProcessing(comment);
-        String keywords = "";
-        if (tokenModelList.size() > 0) {
-            keywords += tokenModelList.get(0).toString();
-            for (int i = 1; i < tokenModelList.size(); i++) {
-                keywords += "," + tokenModelList.get(i).toString();
-            }
-        }
-        methodInfoTable.setMethodCommentKeywords(keywords);
+//        comment = CommentAnalysis.extractCommentDescription(comment);
+//        List<TokenModel> tokenModelList = CommentAnalysis.commentNLPProcessing(comment);
+//        String keywords = "";
+//        if (tokenModelList.size() > 0) {
+//            keywords += tokenModelList.get(0).toString();
+//            for (int i = 1; i < tokenModelList.size(); i++) {
+//                keywords += "," + tokenModelList.get(i).toString();
+//            }
+//        }
+        methodInfoTable.setMethodCommentKeywords("keywords");
 
         methodInfoTable.setMethodCode(myMethod.toString());
 
@@ -541,7 +560,7 @@ public class MUTAnalysis {
         String importDependencyString = "";
         if (importDependencySet.size() > 0) {
             for (String s : importDependencySet) {
-                importDependencyString += MD5Util.getMD5(s)+",";
+                importDependencyString += MD5Util.getMD5(s) + ",";
 //                importDependencyString += s + ",";
             }
         }
@@ -567,8 +586,8 @@ public class MUTAnalysis {
                         target += dependencyComment[i].split(":")[1] + "+";
                     }
                 }
-                target = target.substring(0,target.length()-1);
-                methodDependencyString += MD5Util.getMD5("000000picasso"+target) + ",";
+                target = target.substring(0, target.length() - 1);
+                methodDependencyString += MD5Util.getMD5(repositoryId + projectName + target) + ",";
 //                methodDependencyString += "000000picasso"+target + ",";
             }
         }
@@ -581,8 +600,8 @@ public class MUTAnalysis {
                         target += dependencyComment[i].split(":")[1] + "+";
                     }
                 }
-                target = target.substring(0,target.length()-1);
-                methodDependencyString += MD5Util.getMD5("000000picasso"+target) + ",";
+                target = target.substring(0, target.length() - 1);
+                methodDependencyString += MD5Util.getMD5(repositoryId + projectName + target) + ",";
 //                methodDependencyString += "000000picasso"+target + ",";
             }
         }
@@ -596,15 +615,15 @@ public class MUTAnalysis {
                             target += dependencyComment[i].split(":")[1] + "+";
                         }
                     }
-                    target = target.substring(0,target.length()-1);
-                methodDependencyString += MD5Util.getMD5("000000picasso"+target) + ",";
+                    target = target.substring(0, target.length() - 1);
+                    methodDependencyString += MD5Util.getMD5(repositoryId + projectName + target) + ",";
 //                    methodDependencyString += "000000picasso"+target + ",";
                 }
             }
         }
         methodInfoTable.setMethodDependencies(methodDependencyString);
 
-        methodInfoTable.setProjectId("000000picasso");
+        methodInfoTable.setProjectId(repositoryId + projectName);
 
         Timestamp time = new Timestamp(System.currentTimeMillis());
         methodInfoTable.setStorageTime(time);
@@ -645,6 +664,7 @@ public class MUTAnalysis {
             String methodName = expression.asMethodCallExpr().getNameAsString();
             List<Expression> arguments = expression.asMethodCallExpr().getArguments();
             List<String> newTypeList = getVariableTypeList(arguments, variableDeclarators, externalFieldDeclarationList);
+//            System.out.println(newTypeList.toString());
             if (Character.isUpperCase(object.toString().charAt(0))) {
                 //如果调用该方法的对象首字母是大写，说明是类class.xxx()，查看import
                 ImportDeclaration id = getImportDeclartion(importPackageList, object.toString());
@@ -739,7 +759,8 @@ public class MUTAnalysis {
             //不是构造函数
             MethodDeclaration externalMethod = null;
             List<String> MUTList = new ArrayList<>();
-            MUTList = findFileList(new File("MUTClass/"), MUTList);
+            String name = projectName + "_" + repositoryId + "_" + star + "_" + "MUTClass/";
+            MUTList = findFileList(new File(name), MUTList);
             boolean fromTest = false;
             for (String s : MUTList) {
                 s = s.split("\\\\")[1];
@@ -752,8 +773,8 @@ public class MUTAnalysis {
                         } else if (testOrProd.equals("prod")) {
                             fromTest = false;
                         }
-                        System.out.println(s);
-                        CompilationUnit cu2 = constructCompilationUnit(null, "MUTClass/" + s);
+//                        System.out.println(s);
+                        CompilationUnit cu2 = constructCompilationUnit(null, name + s);
                         List<MethodDeclaration> methodDeclarationList = cu2.findAll(MethodDeclaration.class);
                         for (MethodDeclaration md : methodDeclarationList) {
                             if (md.getNameAsString().equals(targetMethodCallName)) {
@@ -771,7 +792,8 @@ public class MUTAnalysis {
             //是构造函数
             ConstructorDeclaration constructorDeclaration = null;
             List<String> MUTList = new ArrayList<>();
-            MUTList = findFileList(new File("MUTClass/"), MUTList);
+            String name = projectName + "_" + repositoryId + "_" + star + "_" + "MUTClass/";
+            MUTList = findFileList(new File(name), MUTList);
             boolean fromTest = false;
             for (String s : MUTList) {
                 s = s.split("\\\\")[1];
@@ -784,7 +806,7 @@ public class MUTAnalysis {
                         } else if (testOrProd.equals("prod")) {
                             fromTest = false;
                         }
-                        CompilationUnit cu2 = constructCompilationUnit(null, "MUTClass/" + s);
+                        CompilationUnit cu2 = constructCompilationUnit(null, name + s);
                         List<ConstructorDeclaration> constructorDeclarationList = cu2.findAll(ConstructorDeclaration.class);
                         for (ConstructorDeclaration md : constructorDeclarationList) {
                             if (md.getNameAsString().equals(targetMethodCallName)) {
@@ -900,6 +922,7 @@ public class MUTAnalysis {
         for (Parameter p : parameters) {
             typeList.add(p.getTypeAsString());
         }
+//        System.out.println("typeList:"+typeList.toString());
         String typeString = "(";
         if (typeList.size() > 0) {
             String s1 = typeList.get(0).replaceAll("\\?", "");
@@ -924,6 +947,7 @@ public class MUTAnalysis {
         for (Parameter p : parameters) {
             typeList.add(p.getTypeAsString());
         }
+//        System.out.println(typeList.toString());
         String typeString = "(";
         if (typeList.size() > 0) {
             String s1 = typeList.get(0).replaceAll("\\?", "");

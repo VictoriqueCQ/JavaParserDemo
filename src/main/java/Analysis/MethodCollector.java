@@ -67,12 +67,12 @@ public class MethodCollector {
         if (code == null) {
             cu = StaticJavaParser.parse(new File(filePath));
         } else {
-            try{
+            try {
                 if (code.contains("default ")) {
                     code = code.replaceAll("default", "");
                 }
                 cu = StaticJavaParser.parse(code);
-            }catch (Exception e){
+            } catch (Exception e) {
             }
 
         }
@@ -126,7 +126,7 @@ public class MethodCollector {
             testOrProduct = "test";
         }
         CompilationUnit cu2 = constructCompilationUnit(methodClass, null);
-        if(cu2!=null){
+        if (cu2 != null) {
             List<VariableTuple> variableList = new ArrayList<>();
             for (FieldDeclaration fd : globelVariableList) {
 //            System.out.println(fd);
@@ -878,8 +878,10 @@ public class MethodCollector {
                 //如果分割后，前一个不是字母，后一个不是字母
                 if (s.length == 1) {
                     return id;
-                } else if (!String.valueOf(s[1].charAt(0)).matches("[a-zA-Z]+")) {
-                    return id;
+                } else if (String.valueOf(s[1]).length() > 0) {
+                    if (!String.valueOf(s[1].charAt(0)).matches("[a-zA-Z]+")) {
+                        return id;
+                    }
                 }
             }
         }

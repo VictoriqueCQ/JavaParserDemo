@@ -29,12 +29,29 @@ public class MethodModel {
             for (Parameter p : parameterList) {
                 parameters.add(p.getTypeAsString());
             }
-            StringBuilder s = new StringBuilder("(" + parameters.get(0));
-            for (int i = 1; i < parameters.size(); i++) {
-                s.append(",").append(parameters.get(i));
+            String typeString = "(";
+            if (parameters.size() > 0) {
+                String s1 = parameters.get(0).replaceAll("\\?", "");
+                s1 = s1.replaceAll("<", "");
+                s1 = s1.replaceAll(">", "");
+                typeString += s1;
+                for (int i = 1; i < parameters.size(); i++) {
+                    String s2 = parameters.get(i).replaceAll("\\?", "");
+                    s2 = s2.replaceAll("<", "");
+                    s2 = s2.replaceAll(">", "");
+                    typeString = typeString + "," + s2;
+                }
+
             }
-            s.append(")");
-            this.parameterTypeList = s.toString();
+            typeString += ")";
+
+//            StringBuilder s = new StringBuilder("(" + parameters.get(0));
+//            for (int i = 1; i < parameters.size(); i++) {
+//                s.append(",").append(parameters.get(i));
+//            }
+//            s.append(")");
+//            System.out.println(s.toString());
+            this.parameterTypeList = typeString;
         }
         this.fromTest = fromTest;
     }

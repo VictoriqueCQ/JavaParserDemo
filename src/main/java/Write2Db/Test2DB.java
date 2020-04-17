@@ -23,6 +23,7 @@ public class Test2DB {
     static List<FieldDeclaration> globelVariableList = null;
 
     public static void main(String[] args) throws IOException, SQLException {
+        Test2DB test2DB = new Test2DB();
         List<String> filenames = new ArrayList<>();
         Utils.findFileList(new File("NewTestClass"), filenames);
         conn = DBUtil.getConnection();
@@ -40,15 +41,15 @@ public class Test2DB {
             }
             bReader.close();
             String str = sb.toString();
-            String[] strArray = str.split("===");
+            String[] strArray = str.split("=&=&=");
             String testCaseStr = strArray[1].trim();
-            String[] testCase = testCaseStr.split("---");
+            String[] testCase = testCaseStr.split("-&-&-");
             String originalCase = strArray[0];
 //            System.out.println(testCase.length);
             for (int j = 1; j < testCase.length; j++) {
-                TestInfoTable testInfoTable = getTestInfoTable(originalCase, testCase[j], filenames.get(i));
+                TestInfoTable testInfoTable = test2DB.getTestInfoTable("D:/picasso/src", originalCase, testCase[j], filenames.get(i), "picasso", "000000");
 //                System.out.println(testInfoTable.toString());
-                write2DB(testInfoTable);
+                test2DB.write2DB(testInfoTable);
             }
 //            }
 
@@ -57,7 +58,7 @@ public class Test2DB {
         conn.close();
     }
 
-    public static void write2DB(TestInfoTable testInfoTable) throws SQLException {
+    public void write2DB(TestInfoTable testInfoTable) throws SQLException {
         String sql = "INSERT INTO test_info_table (test_case_name,test_case_code,test_target_id,test_target_signature,class_name,package_name,import_dependencies,method_dependencies,test_framework,junit_version,assert_framework,storage_time) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)";
         PreparedStatement ptmt = conn.prepareStatement(sql);
         ptmt.setString(1, testInfoTable.getTestCaseName());
@@ -80,10 +81,10 @@ public class Test2DB {
         ptmt.close();//关闭资源
     }
 
-    public static TestInfoTable getTestInfoTable(String originalTestCase, String testCase, String filename) throws FileNotFoundException {
+    public TestInfoTable getTestInfoTable(String SRC_PATH, String originalTestCase, String testCase, String filename, String projectName, String repositoryId) throws FileNotFoundException {
         TestInfoTable testInfoTable = new TestInfoTable();
-        CompilationUnit cu1 = Utils.constructCompilationUnit(originalTestCase, null, "D:/picasso/src");
-        CompilationUnit cu2 = Utils.constructCompilationUnit(testCase, null, "D:/picasso/src");
+        CompilationUnit cu1 = Utils.constructCompilationUnit(originalTestCase, null, SRC_PATH);
+        CompilationUnit cu2 = Utils.constructCompilationUnit(testCase, null, SRC_PATH);
         //测试方法列表。实际上只有一个
         List<MethodDeclaration> testMethod = new ArrayList<>();
         cu2.findAll(MethodDeclaration.class).stream().filter(md -> md.getAnnotationByName("Test").isPresent()).forEach(testMethod::add);
@@ -91,9 +92,9 @@ public class Test2DB {
         String targetMethodName = testCaseName.replaceAll("test", "");
         targetMethodName = String.valueOf(targetMethodName.charAt(0)).toLowerCase() + targetMethodName.substring(1);
         String[] filenameArray = filename.split("\\+");
-        String packageName = filenameArray[0].split("\\\\")[1];
+        String packageName = filenameArray[3];
 //        System.out.println(packageName);
-        String className = filenameArray[1];
+        String className = filenameArray[4];
 //        String typeList = filenameArray[3];
         String testTargetSignature = "";
         List<MethodDeclaration> methodDeclarationList = cu2.findAll(MethodDeclaration.class);
@@ -111,7 +112,7 @@ public class Test2DB {
                 }
             }
         }
-        String testTargetId = MD5Util.getMD5("000000picasso" + testTargetSignature);
+        String testTargetId = MD5Util.getMD5(repositoryId + projectName + testTargetSignature);
         String testCaseCode = testMethod.get(0).toString();
         int testFramework = 0;
         int junitVersion = 4;
@@ -195,8 +196,10 @@ public class Test2DB {
         if (methodDependencySet.size() > 0) {
             for (String s : methodDependencySet) {
 //                System.out.println(s);
-                methodDependencyString += MD5Util.getMD5("000000picasso"+s)+",";
-//                methodDependencyString += "000000picasso" + s + "&&";
+                if (s.length() > 0) {
+                    methodDependencyString += MD5Util.getMD5(repositoryId + projectName + s) + ",";
+//                    methodDependencyString += repositoryId + projectName + "+" + s + "&&";
+                }
             }
         }
 //        System.out.println(methodDependencyString);
@@ -236,13 +239,16 @@ public class Test2DB {
 
     public static String fromMethodCommentToTarget(MethodDeclaration md) {
         String target = "";
-        String[] comment = md.getJavadoc().get().toText().split(System.lineSeparator());
-        for (int i = 0; i < comment.length; i++) {
-            if (comment[i].contains("packagename") || comment[i].contains("classname") || comment[i].contains("methodname") || comment[i].contains("parametertype")) {
-                target += comment[i].split(":")[1] + "+";
+//        System.out.println(md);
+        if (md.getJavadoc().isPresent()) {
+            String[] comment = md.getJavadoc().get().toText().split(System.lineSeparator());
+            for (int i = 0; i < comment.length; i++) {
+                if (comment[i].contains("packagename") || comment[i].contains("classname") || comment[i].contains("methodname") || comment[i].contains("parametertype")) {
+                    target += comment[i].split(":")[1] + "+";
+                }
             }
+            target = target.substring(0, target.length() - 1);
         }
-        target = target.substring(0, target.length() - 1);
         return target;
     }
 

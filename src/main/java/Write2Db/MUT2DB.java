@@ -18,9 +18,14 @@ import java.util.Map;
 
 public class MUT2DB {
     private static Connection conn = null;
-
+    String FILE_PATH = "";
+    static String projectName;
+    static  String repositoryId;
+    static String star;
+    static String SRC_PATH;
     public static void main(String[] args) throws FileNotFoundException, SQLException {
 //        FirstWrite2Db();
+        MUT2DB mut2DB = new MUT2DB();
         Map<String, MethodInfoTable> methodInfoTableMap = new HashMap<>();
         List<String> filePathList = new ArrayList<>();
         List<String> testFilePathList = new ArrayList<>();
@@ -41,23 +46,23 @@ public class MUT2DB {
         }
         conn = DBUtil.getConnection();
         for (int j = 0; j < filePathList.size(); j++) {
-            MUTAnalysis mutAnalysis = new MUTAnalysis(filePathList.get(j));
+            MUTAnalysis mutAnalysis = new MUTAnalysis(SRC_PATH, filePathList.get(j), projectName, repositoryId, star);
             List<String> originalMethodClassList = mutAnalysis.getOriginalMethod();
             for (int i = 0; i < originalMethodClassList.size(); i++) {
-                MethodInfoTable methodInfoTable = mutAnalysis.methodExtraction(0, originalMethodClassList.get(i));
+                MethodInfoTable methodInfoTable = mutAnalysis.methodExtraction("picasso","000000",0, originalMethodClassList.get(i));
                 methodInfoTableMap.put(methodInfoTable.getMethodSignature(), methodInfoTable);
             }
         }
         for (int j = 0; j < testFilePathList.size(); j++) {
-            MUTAnalysis mutAnalysis = new MUTAnalysis(testFilePathList.get(j));
+            MUTAnalysis mutAnalysis = new MUTAnalysis(SRC_PATH, testFilePathList.get(j), projectName, repositoryId, star);
             List<String> originalMethodClassList = mutAnalysis.getOriginalMethod();
             for (int i = 0; i < originalMethodClassList.size(); i++) {
-                MethodInfoTable methodInfoTable = mutAnalysis.methodExtraction(1, originalMethodClassList.get(i));
+                MethodInfoTable methodInfoTable = mutAnalysis.methodExtraction("picasso","000000",1, originalMethodClassList.get(i));
                 methodInfoTableMap.put(methodInfoTable.getMethodSignature(),methodInfoTable);
             }
         }
         for (Map.Entry<String, MethodInfoTable> entry : methodInfoTableMap.entrySet()) {
-            write2DB(entry.getValue());
+            mut2DB.write2DB(entry.getValue());
 //            System.out.println(entry.getValue());
         }
         conn.close();//关闭资源
@@ -80,7 +85,7 @@ public class MUT2DB {
 
     }
 
-    public static void write2DB(MethodInfoTable methodInfoTable) throws SQLException {
+    public void write2DB(MethodInfoTable methodInfoTable) throws SQLException {
         String sql = "INSERT INTO method_info_table (method_id,method_signature,method_name,parameter_types,class_name,package_name,method_comment,method_comment_keywords,method_code,is_mut,import_dependencies,method_dependencies,project_id,storage_time,return_type) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
         PreparedStatement ptmt = conn.prepareStatement(sql);
         ptmt.setString(1, methodInfoTable.getMethodId());
