@@ -241,8 +241,12 @@ public class MethodCollector {
                     writeFileImportList.add(i.toString());
                 }
                 if (newPath.length() > 0) {
+//                    System.out.println(path);
+//                    System.out.println(newPath);
                     String tempPath = newPath.replaceAll("\\.java", "");
-                    String variable = path.replaceAll(tempPath + "/", "");
+//                    System.out.println(tempPath);
+                    String variable = path.replace(tempPath + "/", "");
+
                     importMap.put(variable, newPath);
                 }
             }
@@ -366,8 +370,12 @@ public class MethodCollector {
 //                }
 //            }
 //        }
-
-            String packageName = packageList.get(0).getNameAsString();
+            String packageName;
+            if (packageList.size() > 0) {
+                packageName = packageList.get(0).getNameAsString();
+            }else{
+                packageName = "nopackage";
+            }
 
             MethodInfoTable methodInfoTable = null;
             //获取MethodDeclanation，用于后续添加语句

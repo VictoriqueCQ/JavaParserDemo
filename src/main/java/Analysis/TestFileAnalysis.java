@@ -208,7 +208,7 @@ public class TestFileAnalysis {
             }
             if (newPath.length() > 0) {
                 String tempPath = newPath.replaceAll("\\.java", "");
-                String variable = path.replaceAll(tempPath + "/", "");
+                String variable = path.replace(tempPath + "/", "");
                 importMap.put(variable, newPath);
             }
         }
@@ -396,7 +396,12 @@ public class TestFileAnalysis {
         List<String> methodContent = new ArrayList<>();
         myMethod.getBody().get().getStatements().forEach(s -> methodContent.add(s.toString()));
         methodContent.forEach(m -> fragmentContent.add(m));
-        String packageName = packageList.get(0).getNameAsString();
+        String packageName;
+        if (packageList.size() > 0) {
+            packageName = packageList.get(0).getNameAsString();
+        }else{
+            packageName = "nopackage";
+        }
 //        System.out.println(myClass.toString());
         //写文件
         writeTestClass(packageName, methodName, typeString, writeFileImportList, myClass);
@@ -426,7 +431,12 @@ public class TestFileAnalysis {
                 } else {
 //                    System.out.println("2:"+expression);
                     //认为是本项目的方法
-                    String packageName = packageList.get(0).getNameAsString();
+                    String packageName;
+                    if (packageList.size() > 0) {
+                        packageName = packageList.get(0).getNameAsString();
+                    }else{
+                        packageName = "nopackage";
+                    }
                     targetMethodModel = getExternalMethod(methodName, packageName, object.toString(), newTypeList);
                 }
             } else {

@@ -178,8 +178,13 @@ public class write2DbTest {
             if (filename.contains(".java")) {
 //                System.out.println(filename);
                 CompilationUnit cu = Utils.constructCompilationUnit(null, filename, SRC_PATH);
-                PackageDeclaration packageDeclaration = cu.findFirst(PackageDeclaration.class).get();
-                String packageName = packageDeclaration.getNameAsString();
+                List<PackageDeclaration>packageList = cu.findAll(PackageDeclaration.class);
+                String packageName;
+                if(packageList.size()>0){
+                    packageName = packageList.get(0).getNameAsString();
+                }else{
+                    packageName = "nopackage";
+                }
                 List<ImportDeclaration> importDeclarationList = cu.findAll(ImportDeclaration.class);
                 for (ImportDeclaration id : importDeclarationList) {
                     if (!id.getNameAsString().contains(packageName) && !id.getNameAsString().contains("java.")) {
