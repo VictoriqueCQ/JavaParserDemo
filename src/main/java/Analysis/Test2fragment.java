@@ -15,8 +15,8 @@ import java.util.Map;
 public class Test2fragment {
     static List<String> filePathList = new ArrayList<>();
     static List<String> testFilePathList = new ArrayList<>();
-    static String SRC_PATH = "G:/image-comparison_99270745_74/src";
-    static String repositoryName = "image-comparison_99270745_74";
+    static String SRC_PATH = "G:/agile-wroking-backend_98998940_57/src";
+    static String repositoryName = "agile-wroking-backend_98998940_57";
     static int testFramework = 0;
     static int junitVersion = 4;
     static int assertFramework = 0;
@@ -169,8 +169,6 @@ public class Test2fragment {
 
 //        }
         System.out.println("Total Number of Test Cases: " + numberOfTestCase);
-
-
         /** 获取当前的系统时间，与初始时间相减就是程序运行的毫秒数，除以1000就是秒数*/
         long endTime = System.currentTimeMillis();
         long usedTime = (endTime - startTime) / 1000;

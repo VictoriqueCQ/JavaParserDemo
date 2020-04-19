@@ -1,26 +1,29 @@
 package Write2Db;
 
+import Model.TestInfoTable;
+import Utils.DBUtil;
+import Utils.MD5Util;
+import Utils.Utils;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.ImportDeclaration;
 import com.github.javaparser.ast.body.*;
 import com.github.javaparser.ast.expr.Expression;
 import com.github.javaparser.ast.expr.MethodCallExpr;
 import com.github.javaparser.ast.expr.ObjectCreationExpr;
-import Model.TestInfoTable;
-import Utils.DBUtil;
-import Utils.MD5Util;
-import Utils.Utils;
 
 import java.io.*;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Timestamp;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 public class Test2DB {
     private static Connection conn = null;
-    static List<FieldDeclaration> globelVariableList = null;
+//    static List<FieldDeclaration> globelVariableList = null;
 
     public static void main(String[] args) throws IOException, SQLException {
         Test2DB test2DB = new Test2DB();
@@ -85,6 +88,11 @@ public class Test2DB {
         TestInfoTable testInfoTable = new TestInfoTable();
         CompilationUnit cu1 = Utils.constructCompilationUnit(originalTestCase, null, SRC_PATH);
         CompilationUnit cu2 = Utils.constructCompilationUnit(testCase, null, SRC_PATH);
+        List<FieldDeclaration> globalVariableList = new ArrayList<>();
+        List<FieldDeclaration> fdList = cu2.findAll(FieldDeclaration.class);
+        if (fdList != null) {
+            globalVariableList = fdList;
+        }
         //测试方法列表。实际上只有一个
         List<MethodDeclaration> testMethod = new ArrayList<>();
         cu2.findAll(MethodDeclaration.class).stream().filter(md -> md.getAnnotationByName("Test").isPresent()).forEach(testMethod::add);
@@ -92,9 +100,16 @@ public class Test2DB {
         String targetMethodName = testCaseName.replaceAll("test", "");
         targetMethodName = String.valueOf(targetMethodName.charAt(0)).toLowerCase() + targetMethodName.substring(1);
         String[] filenameArray = filename.split("\\+");
-        String packageName = filenameArray[3];
-//        System.out.println(packageName);
-        String className = filenameArray[4];
+        String packageName;
+        String className;
+        if (SRC_PATH.equals("D:/picasso/src")) {
+            packageName = filenameArray[0].split("\\\\")[1];
+            className = filenameArray[1];
+        } else {
+            packageName = filenameArray[3];
+            className = filenameArray[4];
+        }
+
 //        String typeList = filenameArray[3];
         String testTargetSignature = "";
         List<MethodDeclaration> methodDeclarationList = cu2.findAll(MethodDeclaration.class);
@@ -113,7 +128,11 @@ public class Test2DB {
             }
         }
         String testTargetId = MD5Util.getMD5(repositoryId + projectName + testTargetSignature);
-        String testCaseCode = testMethod.get(0).toString();
+        String testCaseCode = "";
+        for (FieldDeclaration fd : globalVariableList) {
+            testCaseCode += fd.toString();
+        }
+        testCaseCode += testMethod.get(0).toString();
         int testFramework = 0;
         int junitVersion = 4;
         int assertFramework = 2;
@@ -165,16 +184,12 @@ public class Test2DB {
                 variableDeclaratorList.add(vd);
             }
         }
-        List<FieldDeclaration> fieldList = cu2.findAll(FieldDeclaration.class);
-        if (fieldList != null) {
-            globelVariableList = fieldList;
-        }
 
         for (MethodCallExpr mce : methodCallExprList) {
             for (MethodDeclaration md : methodDeclarationList) {
                 String name = mce.getNameAsString();
                 List<Expression> param = mce.getArguments();
-                List<String> mceTypeList = getVariableTypeList(param, variableDeclaratorList);
+                List<String> mceTypeList = getVariableTypeList(param, variableDeclaratorList, globalVariableList);
                 if (matchMethod(name, mceTypeList, md)) {
                     String target = fromMethodCommentToTarget(md);
                     methodDependencySet.add(target);
@@ -186,7 +201,7 @@ public class Test2DB {
             for (ConstructorDeclaration cd : constructorDeclarationList) {
                 String name = oce.getTypeAsString();
                 List<Expression> param = oce.getArguments();
-                List<String> oceTypeList = getVariableTypeList(param, variableDeclaratorList);
+                List<String> oceTypeList = getVariableTypeList(param, variableDeclaratorList, globalVariableList);
                 if (matchMethod(name, oceTypeList, cd)) {
                     String target = fromConstructorCommentToTarget(cd);
                     methodDependencySet.add(target);
@@ -308,7 +323,7 @@ public class Test2DB {
         return flag;
     }
 
-    public static List<String> getVariableTypeList(List<Expression> arguments, List<VariableDeclarator> variableDeclarators) {
+    public static List<String> getVariableTypeList(List<Expression> arguments, List<VariableDeclarator> variableDeclarators, List<FieldDeclaration> globelVariableList) {
         List<String> variableTypeList = new ArrayList<>();
         for (Expression expression1 : arguments) {
             VariableDeclarator vd2 = getVariableInitialize(expression1, globelVariableList, variableDeclarators);

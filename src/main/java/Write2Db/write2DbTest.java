@@ -23,27 +23,49 @@ public class write2DbTest {
     public static final String PASSWORD = "123456";
     private static Connection conn = null;
 
-    String SRC_PATH = "G:/image-comparison_99270745_74/src";
-    String repository = "image-comparison_99270745_74";
-    String repositoryUrl = "https://github.com/romankh3/image-comparison";
+    //    String SRC_PATH = "G:/agile-wroking-backend_98998940_57/src";
+//    String repository = "agile-wroking-backend_98998940_57";
+//    String repositoryUrl = "https://github.com/7upcat/agile-wroking-backend";
+    String SRC_PATH;
+    String repository;
+    String repositoryUrl;
     String repositoryName;
     String projectName;
     String repositoryId;
     String star;
 
-    public static void main(String[] args) throws IOException, SQLException {
+
+    public void write(String path, String repoName, String githubUrl) throws IOException, SQLException {
         /** 获取当前系统时间*/
+        SRC_PATH = path;
+        repository = repoName;
+        repositoryUrl = githubUrl;
         long startTime = System.currentTimeMillis();
         /** 程序运行 processRun();*/
-        write2DbTest write2DbTest = new write2DbTest();
-        write2DbTest.getProjectNameAndRepositoryId();
+//        write2DbTest write2DbTest = new write2DbTest();
+//        write2DbTest.getProjectNameAndRepositoryId();
+        if (!SRC_PATH.contains("picasso")) {
+            String[] name = SRC_PATH.split(repository+"\\\\");
+            if(name[1].equals("src")){
+                projectName = repository.split("_")[0];
+            }else{
+                projectName = name[1].split("\\\\")[0].split("_")[0];
+            }
+            this.repositoryName = repository.split("_")[0];
+            repositoryId = repository.split("_")[1];
+            star = repository.split("_")[2];
+        } else {
+            projectName = "picasso";
+            repositoryId = "000000";
+            repositoryName = "picasso";
+        }
         conn = DBUtil.getConnection();
 
-        List<ImportInfoTable> importInfoTableList = write2DbTest.writeImport2Db();
+        List<ImportInfoTable> importInfoTableList = writeImport2Db();
         System.out.println("import ok");
-        List<TestInfoTable> testInfoTableList = write2DbTest.writeTest2Db();
+        List<TestInfoTable> testInfoTableList = writeTest2Db();
         System.out.println("test ok");
-        Map<String, MethodInfoTable> methodInfoTableList = write2DbTest.writeMethod2Db();
+        Map<String, MethodInfoTable> methodInfoTableList = writeMethod2Db();
         System.out.println("method ok");
         List<String> idt = new ArrayList<>();
         List<String> mdt = new ArrayList<>();
@@ -102,18 +124,18 @@ public class write2DbTest {
             }
         }
         if (!importTrueList.contains(false) && !methodTrueList.contains(false)) {
-            ProjectInfoTable projectInfoTable = write2DbTest.writeProject2Db();
+            ProjectInfoTable projectInfoTable = writeProject2Db();
             System.out.println("project write ok");
             for (ImportInfoTable importInfoTable : importInfoTableList) {
-                write2DbTest.writeImport2Db(importInfoTable);
+                writeImport2Db(importInfoTable);
             }
             System.out.println("import write ok");
             for (TestInfoTable testInfoTable : testInfoTableList) {
-                write2DbTest.writeTest2Db(testInfoTable);
+                writeTest2Db(testInfoTable);
             }
             System.out.println("test write ok");
             for (Map.Entry<String, MethodInfoTable> entry : methodInfoTableList.entrySet()) {
-                write2DbTest.writeMethod2Db(entry.getValue());
+                writeMethod2Db(entry.getValue());
             }
             System.out.println("method write ok");
         } else {
@@ -127,10 +149,8 @@ public class write2DbTest {
     }
 
     public void getProjectNameAndRepositoryId() {
-        projectName = SRC_PATH.split("/")[1].split("_")[0];
-        repositoryName = repository.split("_")[0];
-        repositoryId = repository.split("_")[1];
-        star = repository.split("_")[2];
+
+
 //        System.out.println(projectName + "+" + repositoryName + "+" + repositoryId + "+" + star);
     }
 
@@ -235,55 +255,61 @@ public class write2DbTest {
 //        String projectName = project[0];
 //        String repositoryId = project[1];
 //        String star = project[2].split("/")[0];
-        String filename = projectName + "_" + repositoryId + "_" + star + "_" + "NewTestClass";
+        String filename;
+        if (projectName.equals("picasso")) {
+            filename = "NewTestClass";
+        } else {
+            filename = projectName + "_" + repositoryId + "_" + star + "_" + "NewTestClass";
+        }
+
         Utils.findFileList(new File(filename), filenames);
         Set<String> pathSet = new HashSet<>();
         for (int i = 0; i < filenames.size(); i++) {
 //            if (i == 3) {
 //                System.out.println(filenames.get(i));
-                File file = new File(filenames.get(i));//定义一个file对象，用来初始化FileReader
-                FileReader reader = new FileReader(file);//定义一个fileReader对象，用来初始化BufferedReader
-                BufferedReader bReader = new BufferedReader(reader);//new一个BufferedReader对象，将文件内容读取到缓存
-                StringBuilder sb = new StringBuilder();//定义一个字符串缓存，将字符串存放缓存中
-                String s = "";
-                while ((s = bReader.readLine()) != null) {//逐行读取文件内容，不读取换行符和末尾的空格
-                    sb.append(s + "\n");//将读取的字符串添加换行符后累加存放在缓存中
-                }
-                bReader.close();
-                String str = sb.toString();
-                String[] strArray = str.split("=&=&=\n");
-                String originalCase = strArray[0];
-                CompilationUnit cu = Utils.constructCompilationUnit(originalCase, null, SRC_PATH);
-                if (cu != null) {
-                    List<MethodDeclaration> methodDeclarationList = cu.findAll(MethodDeclaration.class);
-                    for (MethodDeclaration methodDeclaration : methodDeclarationList) {
-                        String packageName = "";
-                        String className = "";
-                        String path = "";
-                        String isTest = "";
-                        if (!methodDeclaration.getAnnotationByName("Test").isPresent()) {
-                            if (methodDeclaration.getJavadoc().isPresent()) {
-                                String[] dependencyComment = methodDeclaration.getJavadoc().get().toText().split(System.lineSeparator());
-                                for (String value : dependencyComment) {
-                                    if (value.contains("packagename")) {
-                                        packageName = value.split(":")[1];
-                                        packageName = packageName.replaceAll("\\.", "/");
-                                    } else if (value.contains("classname")) {
-                                        className = value.split(":")[1];
-                                    } else if (value.contains("fromTest")) {
-                                        isTest = value.split(":")[1];
-                                    }
-                                    if (isTest.equals("true")) {
-                                        path = SRC_PATH + "/" + "test/java" + "/" + packageName + "/" + className + ".java";
-                                    } else {
-                                        path = SRC_PATH + "/" + "main/java" + "/" + packageName + "/" + className + ".java";
-                                    }
+            File file = new File(filenames.get(i));//定义一个file对象，用来初始化FileReader
+            FileReader reader = new FileReader(file);//定义一个fileReader对象，用来初始化BufferedReader
+            BufferedReader bReader = new BufferedReader(reader);//new一个BufferedReader对象，将文件内容读取到缓存
+            StringBuilder sb = new StringBuilder();//定义一个字符串缓存，将字符串存放缓存中
+            String s = "";
+            while ((s = bReader.readLine()) != null) {//逐行读取文件内容，不读取换行符和末尾的空格
+                sb.append(s + "\n");//将读取的字符串添加换行符后累加存放在缓存中
+            }
+            bReader.close();
+            String str = sb.toString();
+            String[] strArray = str.split("=&=&=\n");
+            String originalCase = strArray[0];
+            CompilationUnit cu = Utils.constructCompilationUnit(originalCase, null, SRC_PATH);
+            if (cu != null) {
+                List<MethodDeclaration> methodDeclarationList = cu.findAll(MethodDeclaration.class);
+                for (MethodDeclaration methodDeclaration : methodDeclarationList) {
+                    String packageName = "";
+                    String className = "";
+                    String path = "";
+                    String isTest = "";
+                    if (!methodDeclaration.getAnnotationByName("Test").isPresent()) {
+                        if (methodDeclaration.getJavadoc().isPresent()) {
+                            String[] dependencyComment = methodDeclaration.getJavadoc().get().toText().split(System.lineSeparator());
+                            for (String value : dependencyComment) {
+                                if (value.contains("packagename")) {
+                                    packageName = value.split(":")[1];
+                                    packageName = packageName.replaceAll("\\.", "/");
+                                } else if (value.contains("classname")) {
+                                    className = value.split(":")[1];
+                                } else if (value.contains("fromTest")) {
+                                    isTest = value.split(":")[1];
                                 }
-                                pathSet.add(path);
+                                if (isTest.equals("true")) {
+                                    path = SRC_PATH + "/" + "test/java" + "/" + packageName + "/" + className + ".java";
+                                } else {
+                                    path = SRC_PATH + "/" + "main/java" + "/" + packageName + "/" + className + ".java";
+                                }
                             }
+                            pathSet.add(path);
                         }
                     }
                 }
+            }
 //            }
 
         }
@@ -395,26 +421,32 @@ public class write2DbTest {
 //        String star = project[2].split("/")[0];
         List<TestInfoTable> testInfoTableList = new ArrayList<>();
         List<String> filenames = new ArrayList<>();
-        Utils.findFileList(new File(projectName + "_" + repositoryId + "_" + star + "_" + "NewTestClass"), filenames);
+        if(projectName.equals("picasso")){
+            Utils.findFileList(new File("NewTestClass"),filenames);
+        }else{
+            Utils.findFileList(new File(projectName + "_" + repositoryId + "_" + star + "_" + "NewTestClass"), filenames);
+        }
+
         for (int i = 0; i < filenames.size(); i++) {
-            File file = new File(filenames.get(i));//定义一个file对象，用来初始化FileReader
-            FileReader reader = new FileReader(file);//定义一个fileReader对象，用来初始化BufferedReader
-            BufferedReader bReader = new BufferedReader(reader);//new一个BufferedReader对象，将文件内容读取到缓存
-            StringBuilder sb = new StringBuilder();//定义一个字符串缓存，将字符串存放缓存中
-            String s = "";
-            while ((s = bReader.readLine()) != null) {//逐行读取文件内容，不读取换行符和末尾的空格
-                sb.append(s + "\n");//将读取的字符串添加换行符后累加存放在缓存中
-            }
-            bReader.close();
-            String str = sb.toString();
-            String[] strArray = str.split("=&=&=\n");
-            String testCaseStr = strArray[1].trim();
-            String[] testCase = testCaseStr.split("-&-&-\n");
-            String originalCase = strArray[0];
+//            if(i==0){
+                File file = new File(filenames.get(i));//定义一个file对象，用来初始化FileReader
+                FileReader reader = new FileReader(file);//定义一个fileReader对象，用来初始化BufferedReader
+                BufferedReader bReader = new BufferedReader(reader);//new一个BufferedReader对象，将文件内容读取到缓存
+                StringBuilder sb = new StringBuilder();//定义一个字符串缓存，将字符串存放缓存中
+                String s = "";
+                while ((s = bReader.readLine()) != null) {//逐行读取文件内容，不读取换行符和末尾的空格
+                    sb.append(s + "\n");//将读取的字符串添加换行符后累加存放在缓存中
+                }
+                bReader.close();
+                String str = sb.toString();
+                String[] strArray = str.split("=&=&=\n");
+                String testCaseStr = strArray[1].trim();
+                String[] testCase = testCaseStr.split("-&-&-\n");
+                String originalCase = strArray[0];
 //            System.out.println(originalCase);
-            for (int j = 1; j < testCase.length; j++) {
+                for (int j = 1; j < testCase.length; j++) {
 //                System.out.println(testCase[j]);
-                TestInfoTable testInfoTable = test2DB.getTestInfoTable(SRC_PATH, originalCase, testCase[j], filenames.get(i), projectName, repositoryId);
+                    TestInfoTable testInfoTable = test2DB.getTestInfoTable(SRC_PATH, originalCase, testCase[j], filenames.get(i), projectName, repositoryId);
 //                System.out.println("testinfo:"+testInfoTable.toString());
 ////                test2DB.write2DB(testInfoTable);
 //                String sql = "INSERT INTO test_info_table (test_case_name,test_case_code,test_target_id,test_target_signature,class_name,package_name,import_dependencies,method_dependencies,test_framework,junit_version,assert_framework,storage_time) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)";
@@ -437,9 +469,11 @@ public class write2DbTest {
 //                    System.out.println("数据录入成功");
 //                }
 //                ptmt.close();//关闭资源
-                testInfoTableList.add(testInfoTable);
-            }
+                    testInfoTableList.add(testInfoTable);
+                }
+//            }
         }
+        System.out.println(testInfoTableList.size());
         return testInfoTableList;
     }
 
