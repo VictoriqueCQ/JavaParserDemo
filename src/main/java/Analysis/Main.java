@@ -60,7 +60,7 @@ public class Main {
         }
         for (int i = 1; i < thirdFilterResultList.size(); i++) {
             System.out.println(thirdFilterResultList.get(i).getProjectName());
-            if (i == 169) {
+//            if (i == 169) {
                 String junitVersion = thirdFilterResultList.get(i).getJunitVersion();
                 String projectName = thirdFilterResultList.get(i).getProjectName();
                 String SRC_PATH = projectName + "src";
@@ -112,7 +112,7 @@ public class Main {
                         }
                     }
                 }
-            }
+//            }
         }
     }
 
