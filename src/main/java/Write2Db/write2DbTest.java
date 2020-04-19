@@ -38,22 +38,17 @@ public class write2DbTest {
     String star;
 
 
-    public void write(String path, String repoName, String githubUrl) throws IOException, SQLException {
+    public void write(String path, String projectName, String repoName, String githubUrl) throws IOException, SQLException {
         /** 获取当前系统时间*/
         SRC_PATH = path;
         repository = repoName;
         repositoryUrl = githubUrl;
+        this.projectName = projectName;
         long startTime = System.currentTimeMillis();
         /** 程序运行 processRun();*/
 //        write2DbTest write2DbTest = new write2DbTest();
 //        write2DbTest.getProjectNameAndRepositoryId();
         if (!SRC_PATH.contains("picasso")) {
-            String[] name = SRC_PATH.split(repository+"\\\\");
-            if(name[1].equals("src")){
-                projectName = repository.split("_")[0];
-            }else{
-                projectName = name[1].split("\\\\")[0].split("_")[0];
-            }
             this.repositoryName = repository.split("_")[0];
             repositoryId = repository.split("_")[1];
             star = repository.split("_")[2];
@@ -178,11 +173,11 @@ public class write2DbTest {
             if (filename.contains(".java")) {
 //                System.out.println(filename);
                 CompilationUnit cu = Utils.constructCompilationUnit(null, filename, SRC_PATH);
-                List<PackageDeclaration>packageList = cu.findAll(PackageDeclaration.class);
+                List<PackageDeclaration> packageList = cu.findAll(PackageDeclaration.class);
                 String packageName;
-                if(packageList.size()>0){
+                if (packageList.size() > 0) {
                     packageName = packageList.get(0).getNameAsString();
-                }else{
+                } else {
                     packageName = "nopackage";
                 }
                 List<ImportDeclaration> importDeclarationList = cu.findAll(ImportDeclaration.class);
@@ -333,7 +328,9 @@ public class write2DbTest {
                     MethodInfoTable methodInfoTable = mutAnalysis.methodExtraction(projectName, repositoryId, 0, originalMethodClassList.get(i));
 //                    System.err.println(methodInfoTable.getMethodSignature());
 //                    System.out.println("signature:"+methodInfoTable.getMethodSignature());
-                    methodInfoTableMap.put(methodInfoTable.getMethodSignature(), methodInfoTable);
+                    if(methodInfoTable!=null){
+                        methodInfoTableMap.put(methodInfoTable.getMethodSignature(), methodInfoTable);
+                    }
                 }
             } catch (FileNotFoundException e) {
                 e.printStackTrace();
@@ -429,32 +426,32 @@ public class write2DbTest {
 //        String star = project[2].split("/")[0];
         List<TestInfoTable> testInfoTableList = new ArrayList<>();
         List<String> filenames = new ArrayList<>();
-        if(projectName.equals("picasso")){
-            Utils.findFileList(new File("NewTestClass"),filenames);
-        }else{
+        if (projectName.equals("picasso")) {
+            Utils.findFileList(new File("NewTestClass"), filenames);
+        } else {
             Utils.findFileList(new File(projectName + "_" + repositoryId + "_" + star + "_" + "NewTestClass"), filenames);
         }
 
         for (int i = 0; i < filenames.size(); i++) {
 //            if(i==0){
-                File file = new File(filenames.get(i));//定义一个file对象，用来初始化FileReader
-                FileReader reader = new FileReader(file);//定义一个fileReader对象，用来初始化BufferedReader
-                BufferedReader bReader = new BufferedReader(reader);//new一个BufferedReader对象，将文件内容读取到缓存
-                StringBuilder sb = new StringBuilder();//定义一个字符串缓存，将字符串存放缓存中
-                String s = "";
-                while ((s = bReader.readLine()) != null) {//逐行读取文件内容，不读取换行符和末尾的空格
-                    sb.append(s + "\n");//将读取的字符串添加换行符后累加存放在缓存中
-                }
-                bReader.close();
-                String str = sb.toString();
-                String[] strArray = str.split("=&=&=\n");
-                String testCaseStr = strArray[1].trim();
-                String[] testCase = testCaseStr.split("-&-&-\n");
-                String originalCase = strArray[0];
+            File file = new File(filenames.get(i));//定义一个file对象，用来初始化FileReader
+            FileReader reader = new FileReader(file);//定义一个fileReader对象，用来初始化BufferedReader
+            BufferedReader bReader = new BufferedReader(reader);//new一个BufferedReader对象，将文件内容读取到缓存
+            StringBuilder sb = new StringBuilder();//定义一个字符串缓存，将字符串存放缓存中
+            String s = "";
+            while ((s = bReader.readLine()) != null) {//逐行读取文件内容，不读取换行符和末尾的空格
+                sb.append(s + "\n");//将读取的字符串添加换行符后累加存放在缓存中
+            }
+            bReader.close();
+            String str = sb.toString();
+            String[] strArray = str.split("=&=&=\n");
+            String testCaseStr = strArray[1].trim();
+            String[] testCase = testCaseStr.split("-&-&-\n");
+            String originalCase = strArray[0];
 //            System.out.println(originalCase);
-                for (int j = 1; j < testCase.length; j++) {
+            for (int j = 1; j < testCase.length; j++) {
 //                System.out.println(testCase[j]);
-                    TestInfoTable testInfoTable = test2DB.getTestInfoTable(SRC_PATH, originalCase, testCase[j], filenames.get(i), projectName, repositoryId);
+                TestInfoTable testInfoTable = test2DB.getTestInfoTable(SRC_PATH, originalCase, testCase[j], filenames.get(i), projectName, repositoryId);
 //                System.out.println("testinfo:"+testInfoTable.toString());
 ////                test2DB.write2DB(testInfoTable);
 //                String sql = "INSERT INTO test_info_table (test_case_name,test_case_code,test_target_id,test_target_signature,class_name,package_name,import_dependencies,method_dependencies,test_framework,junit_version,assert_framework,storage_time) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)";
@@ -477,8 +474,8 @@ public class write2DbTest {
 //                    System.out.println("数据录入成功");
 //                }
 //                ptmt.close();//关闭资源
-                    testInfoTableList.add(testInfoTable);
-                }
+                testInfoTableList.add(testInfoTable);
+            }
 //            }
         }
         System.out.println(testInfoTableList.size());

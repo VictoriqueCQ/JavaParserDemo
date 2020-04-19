@@ -10,6 +10,7 @@ import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import Utils.DbUtil;
+
 import java.io.*;
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -19,6 +20,7 @@ import java.util.Map;
 
 public class Main {
     public static Connection conn = null;
+
     public static void main(String[] args) throws IOException, SQLException {
         List<ThirdFilterResult> thirdFilterResultList = new ArrayList<>();
         //1.读取Excel文档对象
@@ -64,7 +66,7 @@ public class Main {
         conn = DbUtil.getConnection();
         for (int i = 1; i < thirdFilterResultList.size(); i++) {
             System.out.println(thirdFilterResultList.get(i).getProjectName());
-//            if (i == 169) {
+            if (i == 64||i==67||i==72||i>73) {
                 String junitVersion = thirdFilterResultList.get(i).getJunitVersion();
                 String projectName = thirdFilterResultList.get(i).getProjectName();
                 String SRC_PATH = projectName + "src";
@@ -77,10 +79,11 @@ public class Main {
                     String[] name = projectName.split(repositoryName + "\\\\");
                     if (name.length == 1) {
                         projectName = repositoryName;
+                        projectName = projectName.split("_")[0];
                     } else if (name.length == 2) {
                         projectName = name[1].substring(0, name[1].length() - 1).replaceAll("\\\\", ".");
                     }
-                    projectName = projectName.split("_")[0];
+//                    System.out.println("projectName:" + projectName);
                     String star = repositoryName.split("_")[2];
                     int testCaseNumber = 0;
                     //写文件到NewTestClass型目录
@@ -94,11 +97,11 @@ public class Main {
                             String TestDirectoryName = projectName + "_" + repositoryId + "_" + star + "_" + "Test Class";
                             main.deleteDir(MUTDirectoryName);
                             main.deleteDir(TestDirectoryName);
-                        }else{
-                            main.write2Db(SRC_PATH,repositoryId,repositoryName);
+                        } else {
+                            main.write2Db(SRC_PATH,projectName, repositoryId, repositoryName);
                         }
-                    }else{
-                        main.write2Db(SRC_PATH,repositoryId,repositoryName);
+                    } else {
+                        main.write2Db(SRC_PATH,projectName, repositoryId, repositoryName);
                     }
 //                    //写进数据库
 //                    //1.读取Excel文档对象
@@ -121,12 +124,12 @@ public class Main {
 //                        }
 //                    }
                 }
-//            }
+            }
         }
         conn.close();
     }
 
-    public void write2Db(String SRC_PATH,String repositoryId,String repositoryName) throws IOException, SQLException {
+    public void write2Db(String SRC_PATH,String projectName, String repositoryId, String repositoryName) throws IOException, SQLException {
         //写进数据库
         //1.读取Excel文档对象
         XSSFWorkbook xssfWorkbook2 = new XSSFWorkbook(new FileInputStream("D:/2017_Aug_first_filter.xlsx"));
@@ -144,7 +147,7 @@ public class Main {
             if (id.equals(repositoryId)) {
                 String githubUrl = row.getCell(6).getStringCellValue();
                 write2DbTest write2DbTest = new write2DbTest();
-                write2DbTest.write(SRC_PATH, repositoryName, githubUrl);
+                write2DbTest.write(SRC_PATH, projectName, repositoryName, githubUrl);
             }
         }
     }
