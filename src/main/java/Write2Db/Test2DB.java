@@ -1,7 +1,7 @@
 package Write2Db;
 
 import Model.TestInfoTable;
-import Utils.DBUtil;
+import Utils.DbUtil;
 import Utils.MD5Util;
 import Utils.Utils;
 import com.github.javaparser.ast.CompilationUnit;
@@ -29,7 +29,7 @@ public class Test2DB {
         Test2DB test2DB = new Test2DB();
         List<String> filenames = new ArrayList<>();
         Utils.findFileList(new File("NewTestClass"), filenames);
-        conn = DBUtil.getConnection();
+        conn = DbUtil.getConnection();
         for (int i = 0; i < filenames.size(); i++) {
 //            if (i == 1) {
 //            if(filenames.get(i).contains("getResourceById")){

@@ -2,7 +2,7 @@ package Write2Db;
 
 import Analysis.MUTAnalysis;
 import Model.MethodInfoTable;
-import Utils.DBUtil;
+import Utils.DbUtil;
 import Utils.Utils;
 
 import java.io.File;
@@ -44,7 +44,7 @@ public class MUT2DB {
 //                System.err.println(value);
             }
         }
-        conn = DBUtil.getConnection();
+        conn = DbUtil.getConnection();
         for (int j = 0; j < filePathList.size(); j++) {
             MUTAnalysis mutAnalysis = new MUTAnalysis(SRC_PATH, filePathList.get(j), projectName, repositoryId, star);
             List<String> originalMethodClassList = mutAnalysis.getOriginalMethod();
@@ -69,7 +69,7 @@ public class MUT2DB {
     }
 
     public static void updateDependency() throws SQLException {
-        conn = DBUtil.getConnection();
+        conn = DbUtil.getConnection();
         String sql = "select * from method_info_table";
         PreparedStatement ptmt = conn.prepareStatement(sql);
         ResultSet rs = ptmt.executeQuery();

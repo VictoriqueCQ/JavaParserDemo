@@ -4,7 +4,7 @@ import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.ImportDeclaration;
 import com.github.javaparser.ast.PackageDeclaration;
 import Model.ImportInfoTable;
-import Utils.DBUtil;
+import Utils.DbUtil;
 import Utils.MD5Util;
 import Utils.Utils;
 
@@ -51,7 +51,7 @@ public class Import2DB {
 
             }
         }
-        Connection conn = DBUtil.getConnection();
+        Connection conn = DbUtil.getConnection();
         List<ImportInfoTable> importInfoTableList = new ArrayList<>();
         for (String importString : importDeclarationSet) {
             Timestamp time = new Timestamp(System.currentTimeMillis());

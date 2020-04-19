@@ -4,7 +4,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 
-public class DBUtil {
+public class DbUtil {
     public static final String URL = "jdbc:mysql://localhost:3306/tcdb?serverTimezone=Asia/Shanghai";
     public static final String USER = "root";
     public static final String PASSWORD = "123456";

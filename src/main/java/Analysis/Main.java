@@ -9,14 +9,16 @@ import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-
+import Utils.DbUtil;
 import java.io.*;
+import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 public class Main {
+    public static Connection conn = null;
     public static void main(String[] args) throws IOException, SQLException {
         List<ThirdFilterResult> thirdFilterResultList = new ArrayList<>();
         //1.读取Excel文档对象
@@ -58,6 +60,8 @@ public class Main {
 //                System.out.println("文件夹："+tempList[i].getName());
             }
         }
+        //连接数据库
+        conn = DbUtil.getConnection();
         for (int i = 1; i < thirdFilterResultList.size(); i++) {
             System.out.println(thirdFilterResultList.get(i).getProjectName());
 //            if (i == 169) {
@@ -81,38 +85,67 @@ public class Main {
                     int testCaseNumber = 0;
                     //写文件到NewTestClass型目录
                     String newTestClassDir = projectName + "_" + repositoryId + "_" + star + "_" + "NewTestClass";
+                    Main main = new Main();
                     if (!directoryNames.contains(newTestClassDir)) {
-                        Main main = new Main();
+
                         testCaseNumber = main.test2fragment(SRC_PATH, projectName, repositoryName, junitVersion);
                         if (testCaseNumber == 0) {
                             String MUTDirectoryName = projectName + "_" + repositoryId + "_" + star + "_" + "MUTClass";
                             String TestDirectoryName = projectName + "_" + repositoryId + "_" + star + "_" + "Test Class";
                             main.deleteDir(MUTDirectoryName);
                             main.deleteDir(TestDirectoryName);
+                        }else{
+                            main.write2Db(SRC_PATH,repositoryId,repositoryName);
                         }
+                    }else{
+                        main.write2Db(SRC_PATH,repositoryId,repositoryName);
                     }
-                    //写进数据库
-                    //1.读取Excel文档对象
-                    XSSFWorkbook xssfWorkbook2 = new XSSFWorkbook(new FileInputStream("D:/2017_Aug_first_filter.xlsx"));
-                    //2.获取要解析的表格（第一个表格）
-                    XSSFSheet sheet2 = xssfWorkbook2.getSheetAt(0);
-                    //获得最后一行的行号
-                    int lastRowNum2 = sheet2.getLastRowNum();
-                    for (int j = 0; j <= lastRowNum2; j++) {//遍历每一行
-                        //3.获得要解析的行
-                        XSSFRow row = sheet2.getRow(j);
-                        row.getCell(1).setCellType(Cell.CELL_TYPE_STRING);
-                        row.getCell(6).setCellType(Cell.CELL_TYPE_STRING);
-                        //4.获得每个单元格中的内容（String）
-                        String id = row.getCell(1).getStringCellValue();
-                        if (id.equals(repositoryId)) {
-                            String githubUrl = row.getCell(6).getStringCellValue();
-                            write2DbTest write2DbTest = new write2DbTest();
-                            write2DbTest.write(SRC_PATH, repositoryName, githubUrl);
-                        }
-                    }
+//                    //写进数据库
+//                    //1.读取Excel文档对象
+//                    XSSFWorkbook xssfWorkbook2 = new XSSFWorkbook(new FileInputStream("D:/2017_Aug_first_filter.xlsx"));
+//                    //2.获取要解析的表格（第一个表格）
+//                    XSSFSheet sheet2 = xssfWorkbook2.getSheetAt(0);
+//                    //获得最后一行的行号
+//                    int lastRowNum2 = sheet2.getLastRowNum();
+//                    for (int j = 0; j <= lastRowNum2; j++) {//遍历每一行
+//                        //3.获得要解析的行
+//                        XSSFRow row = sheet2.getRow(j);
+//                        row.getCell(1).setCellType(Cell.CELL_TYPE_STRING);
+//                        row.getCell(6).setCellType(Cell.CELL_TYPE_STRING);
+//                        //4.获得每个单元格中的内容（String）
+//                        String id = row.getCell(1).getStringCellValue();
+//                        if (id.equals(repositoryId)) {
+//                            String githubUrl = row.getCell(6).getStringCellValue();
+//                            write2DbTest write2DbTest = new write2DbTest();
+//                            write2DbTest.write(SRC_PATH, repositoryName, githubUrl);
+//                        }
+//                    }
                 }
 //            }
+        }
+        conn.close();
+    }
+
+    public void write2Db(String SRC_PATH,String repositoryId,String repositoryName) throws IOException, SQLException {
+        //写进数据库
+        //1.读取Excel文档对象
+        XSSFWorkbook xssfWorkbook2 = new XSSFWorkbook(new FileInputStream("D:/2017_Aug_first_filter.xlsx"));
+        //2.获取要解析的表格（第一个表格）
+        XSSFSheet sheet2 = xssfWorkbook2.getSheetAt(0);
+        //获得最后一行的行号
+        int lastRowNum2 = sheet2.getLastRowNum();
+        for (int j = 0; j <= lastRowNum2; j++) {//遍历每一行
+            //3.获得要解析的行
+            XSSFRow row = sheet2.getRow(j);
+            row.getCell(1).setCellType(Cell.CELL_TYPE_STRING);
+            row.getCell(6).setCellType(Cell.CELL_TYPE_STRING);
+            //4.获得每个单元格中的内容（String）
+            String id = row.getCell(1).getStringCellValue();
+            if (id.equals(repositoryId)) {
+                String githubUrl = row.getCell(6).getStringCellValue();
+                write2DbTest write2DbTest = new write2DbTest();
+                write2DbTest.write(SRC_PATH, repositoryName, githubUrl);
+            }
         }
     }
 

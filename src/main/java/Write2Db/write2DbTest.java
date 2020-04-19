@@ -1,27 +1,30 @@
 package Write2Db;
 
 import Analysis.MUTAnalysis;
+import Analysis.Main;
 import Model.ImportInfoTable;
 import Model.MethodInfoTable;
 import Model.ProjectInfoTable;
 import Model.TestInfoTable;
 import Utils.MD5Util;
 import Utils.Utils;
-import Utils.DBUtil;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.ImportDeclaration;
 import com.github.javaparser.ast.PackageDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
 
 import java.io.*;
-import java.sql.*;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.*;
 
 public class write2DbTest {
     public static final String URL = "jdbc:mysql://localhost:3306/tcdb";
     public static final String USER = "root";
     public static final String PASSWORD = "123456";
-    private static Connection conn = null;
+//    private static Connection conn = null;
 
     //    String SRC_PATH = "G:/agile-wroking-backend_98998940_57/src";
 //    String repository = "agile-wroking-backend_98998940_57";
@@ -59,7 +62,7 @@ public class write2DbTest {
             repositoryId = "000000";
             repositoryName = "picasso";
         }
-        conn = DBUtil.getConnection();
+//        conn = DbUtil.getConnection();
 
         List<ImportInfoTable> importInfoTableList = writeImport2Db();
         System.out.println("import ok");
@@ -141,7 +144,7 @@ public class write2DbTest {
         } else {
             System.out.println("write false");
         }
-        conn.close();
+//        conn.close();
         /** 获取当前的系统时间，与初始时间相减就是程序运行的毫秒数，除以1000就是秒数*/
         long endTime = System.currentTimeMillis();
         long usedTime = (endTime - startTime) / 1000;
@@ -222,7 +225,7 @@ public class write2DbTest {
     public void writeImport2Db(ImportInfoTable importInfoTable) throws SQLException {
         String s = "select import_id from import_info_table";
         List<String> importIdList = new ArrayList<>();
-        PreparedStatement p = conn.prepareStatement(s);
+        PreparedStatement p = Main.conn.prepareStatement(s);
         ResultSet rs = p.executeQuery();
         while (rs.next()) {
             String id1 = rs.getString(1);
@@ -235,7 +238,7 @@ public class write2DbTest {
 //            //sql, 每行加空格
             String sql = "INSERT INTO import_info_table (import_id,import_string,storage_time) VALUES (?,?,?)";
             //预编译
-            PreparedStatement ptmt = conn.prepareStatement(sql); //预编译SQL，减少sql执行
+            PreparedStatement ptmt = Main.conn.prepareStatement(sql); //预编译SQL，减少sql执行
             ptmt.setString(1, importInfoTable.getImportId());
             ptmt.setString(2, importInfoTable.getImportString());
             ptmt.setTimestamp(3, importInfoTable.getStorageTime());
@@ -337,7 +340,7 @@ public class write2DbTest {
     public void writeMethod2Db(MethodInfoTable methodInfoTable) throws SQLException {
         String s = "select method_id from method_info_table";
         List<String> methodIdList = new ArrayList<>();
-        PreparedStatement p = conn.prepareStatement(s);
+        PreparedStatement p = Main.conn.prepareStatement(s);
         ResultSet rs = p.executeQuery();
         while (rs.next()) {
             String id1 = rs.getString(1);
@@ -347,7 +350,7 @@ public class write2DbTest {
         String methodId = methodInfoTable.getMethodId();
         if (!isInDb(methodIdList, methodId)) {
             String sql = "INSERT INTO method_info_table (method_id,method_signature,method_name,parameter_types,class_name,package_name,method_comment,method_comment_keywords,method_code,is_mut,import_dependencies,method_dependencies,project_id,storage_time,return_type) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
-            PreparedStatement ptmt = conn.prepareStatement(sql);
+            PreparedStatement ptmt = Main.conn.prepareStatement(sql);
             ptmt.setString(1, methodInfoTable.getMethodId());
             ptmt.setString(2, methodInfoTable.getMethodSignature());
             ptmt.setString(3, methodInfoTable.getMethodName());
@@ -375,7 +378,7 @@ public class write2DbTest {
     public ProjectInfoTable writeProject2Db() throws SQLException {
         String s = "select project_id from project_info_table";
         List<String> projectIdList = new ArrayList<>();
-        PreparedStatement p = conn.prepareStatement(s);
+        PreparedStatement p = Main.conn.prepareStatement(s);
         ResultSet rs = p.executeQuery();
         while (rs.next()) {
             String id1 = rs.getString(1);
@@ -396,7 +399,7 @@ public class write2DbTest {
             projectInfoTable.setRepositoryName(repositoryName);
             projectInfoTable.setStorageTime(new Timestamp(System.currentTimeMillis()));
             String sql = "INSERT INTO project_info_table (project_id,project_name,project_type,repository_id,repository_url,repository_name,storage_time) VALUES (?,?,?,?,?,?,?)";
-            PreparedStatement ptmt = conn.prepareStatement(sql); //预编译SQL，减少sql执行
+            PreparedStatement ptmt = Main.conn.prepareStatement(sql); //预编译SQL，减少sql执行
             ptmt.setString(1, projectInfoTable.getProjectId());
             ptmt.setString(2, projectInfoTable.getProjectName());
             ptmt.setLong(3, projectInfoTable.getProjectType());
@@ -480,7 +483,7 @@ public class write2DbTest {
     public void writeTest2Db(TestInfoTable testInfoTable) throws SQLException {
         String s = "select test_target_signature from test_info_table";
         List<String> testTargetSignatureList = new ArrayList<>();
-        PreparedStatement p = conn.prepareStatement(s);
+        PreparedStatement p = Main.conn.prepareStatement(s);
         ResultSet rs = p.executeQuery();
         while (rs.next()) {
             String id1 = rs.getString(1);
@@ -491,7 +494,7 @@ public class write2DbTest {
         if (!isInDb(testTargetSignatureList, testTargetSignature)) {
 //            System.out.println(testTargetSignature);
             String sql = "INSERT INTO test_info_table (test_case_name,test_case_code,test_target_id,test_target_signature,class_name,package_name,import_dependencies,method_dependencies,test_framework,junit_version,assert_framework,storage_time) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)";
-            PreparedStatement ptmt = conn.prepareStatement(sql);
+            PreparedStatement ptmt = Main.conn.prepareStatement(sql);
 //            System.out.println(testInfoTable.getTestCaseCode());
             ptmt.setString(1, testInfoTable.getTestCaseName());
             ptmt.setString(2, testInfoTable.getTestCaseCode());

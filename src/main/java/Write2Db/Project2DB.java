@@ -1,7 +1,7 @@
 package Write2Db;
 
 import Model.ProjectInfoTable;
-import Utils.DBUtil;
+import Utils.DbUtil;
 import Utils.MD5Util;
 
 import java.sql.Connection;
@@ -15,7 +15,7 @@ public class Project2DB {
     public static final String PASSWORD = "123456";
 
     public static void main(String[] args) throws SQLException {
-        Connection conn = DBUtil.getConnection();
+        Connection conn = DbUtil.getConnection();
         String sql = "INSERT INTO project_info_table (project_id,project_name,project_type,repository_id,repository_url,repository_name,storage_time) VALUES (?,?,?,?,?,?,?)";
         PreparedStatement ptmt = conn.prepareStatement(sql); //预编译SQL，减少sql执行
         ProjectInfoTable projectInfoTable = new ProjectInfoTable();
